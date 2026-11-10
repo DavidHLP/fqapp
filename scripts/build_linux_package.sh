@@ -77,5 +77,5 @@ PY
 # --nodeps permits packaging on a prepared host without installing any packages.
 # It is NOT proof of clean-machine dependency satisfaction.
 (cd -- "$output" && makepkg --printsrcinfo > .SRCINFO)
-(cd -- "$output" && makepkg -p source-PKGBUILD --verifysource --nodeps --noconfirm)
+(cd -- "$output" && makepkg -p source-PKGBUILD --verifysource --nodeps --noconfirm --force)
 printf 'Draft package and evidence: %s\n' "$output"

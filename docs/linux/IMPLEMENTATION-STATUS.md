@@ -35,7 +35,10 @@ isolated packaging HOME are implemented. Rust/C/C++ diagnostic remapping and a
 neutral source/SDK/cache build reduce personal paths; opaque residual diagnostics
 are distinct from loader paths. No string patching or license removal.
 
-Full analyze passed. The complete Flutter suite exposes existing Linux profile
+Full analyze passed. Full Flutter suite: 3111 passed, 3 skipped, 370 failed.
+A neutral-path release rebuild and local binary makepkg completed; source recipe
+verification was corrected to allow validation alongside the existing binary pkg.
+The complete Flutter suite exposes existing Linux profile
 ownership setup failures in storage callers; assertions and the ownership gate
 are retained. Fix requires per-test temporary LinuxProfileOwnership acquisition
 and release in the affected fixtures, outside packaging ownership. Do not bypass
