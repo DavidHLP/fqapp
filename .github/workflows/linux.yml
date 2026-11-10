@@ -71,6 +71,8 @@ jobs:
           grep -q 'flutter_rust_bridge = "=2.13.0"' rust/Cargo.toml
           flutter precache --linux
           flutter pub get --enforce-lockfile
+          # SDK migration adds an analysis exclusion; preserve committed source.
+          git restore --source=HEAD -- analysis_options.yaml
           CARGO_NET_OFFLINE=false cargo fetch --manifest-path rust/Cargo.toml --locked
           flutter analyze --no-pub
           cargo test --manifest-path rust/Cargo.toml --locked 2>&1 | tee build/validation/linux/cargo-test.txt

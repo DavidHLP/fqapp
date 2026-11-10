@@ -23,6 +23,8 @@ export DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent
 export PATH="$FLUTTER_ROOT/bin:$PATH"
 flutter precache --linux
 flutter pub get --enforce-lockfile
+# On a disposable clean checkout, undo only the SDK analysis-options migration:
+git restore --source=HEAD -- analysis_options.yaml
 cargo fetch --manifest-path rust/Cargo.toml --locked
 flutter analyze --no-pub
 cargo test --manifest-path rust/Cargo.toml --locked
