@@ -36,7 +36,7 @@ cp -- "$FLUTTER_ROOT/bin/cache/artifacts/engine/linux-x64/"LICENSE* "$licenses/"
   echo "bundle_source_commit=$revision"
   echo "packaging_commit=$(git -C "$root" rev-parse HEAD)"
   echo 'status=draft; GUI/account/license/recovery acceptance pending'
-  "$FLUTTER_ROOT/bin/flutter" --version
+  cat -- "$FLUTTER_ROOT/bin/cache/flutter.version.json"
   rustc --version
   echo "arch_repository_policy=local installed package set; see pacman manifest"
   pacman -Q
