@@ -1,0 +1,129 @@
+test/kept_alive_pages_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,27
+test/shelf_store_source_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,18
+test/mine_page_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,28
+test/read_time_retention_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 2,19
+  s_ffa28ad36a53f3::t_0f39b6dd096d0d 1,190,277
+test/read_time_retention_allocation_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 2,21
+  s_ffa28ad36a53f3::t_802fb54724cf6c 1,56,77,112,115,140,152,185,190,208,250,269
+test/shelf_theme_style_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,212
+test/classic_profile_settings_ui_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,218
+test/classic_shelf_ui_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,167
+test/drama_page_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,211
+  s_ffa28ad36a53f3::t_c170cb6e20d30a 239,379,432,488,542,616,658,689,717,736,792,831,865,879,911,960,1012,1057,1089,1147,1268,1352,1383,1415,1447,1497,1518,1537,1560,1591,1619,1649,1677,1713,1743,1790,1859,1885,1928,1990,2034,2053,2074,2088,2113,2158,2211
+test/shelf_group_store_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,20
+  s_ffa28ad36a53f3::t_68d92518a7416d 455
+test/drama_download_store_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 2,20
+  s_ffa28ad36a53f3::t_1d3bd67ae44d25 1,98
+test/home_feed_cell_budget_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,18
+test/reader_shelf_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,32
+  s_ffa28ad36a53f3::t_92a43b8aee8f02 50-51,92-93
+test/support/synthetic_profile.dart
+  s_ffa28ad36a53f3::t_34178a3de160c6 61-66
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1-13,15-45,48-51,54-60,67,91
+  s_ffa28ad36a53f3::t_df8a33d903c74b 14,46-47,52-53,68-90
+test/statistics_archive_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,24
+test/history_clear_barrier_test.dart
+  s_ffa28ad36a53f3::t_f38f1faf0cf7b2 114,141,147,171
+  s_ffa28ad36a53f3::t_df8f26a0253a95 2,23
+  s_ffa28ad36a53f3::t_74e6d80be4dc38 1,63,174,188
+test/comprehensive_ui_preferences_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,27
+test/series_detail_page_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,25
+test/player_page_navigation_pause_test.dart
+  s_ffa28ad36a53f3::t_68d92518a7416d 29
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,28
+test/reader_bookmarks_and_find_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,307
+test/recent_edit_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,24,44,68
+test/home_provider_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,19
+test/home_feed_cache_test.dart
+  s_ffa28ad36a53f3::t_75bb7b35acc2b3 1,164,185
+  s_ffa28ad36a53f3::t_df8f26a0253a95 2,40
+test/drama_pull_refresh_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,51
+test/library_shelf_groups_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,29
+  s_ffa28ad36a53f3::t_2b0b91c783fa25 149-154
+test/drama_inline_playback_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,211
+test/chapter_cache_store_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 2,18
+  s_ffa28ad36a53f3::t_2984cdf0525d6d 1,130,180,204,224,244
+test/drama_key_split_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,43
+  s_ffa28ad36a53f3::t_061dadd976644a 60,97,115
+test/library_shelf_four_modes_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,27
+test/library_shelf_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 2,42
+  s_ffa28ad36a53f3::t_a38db0d8ff2ce5 1,106,116,145,181,211,252,267,283,294,335,374,399,443,473,497,539,559,575,594,612,641,693,702,710,748,757-758,795,811,832,944,979,1014,1064,1085,1114,1137,1158
+test/library_store_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 2,21
+  s_ffa28ad36a53f3::t_f38f1faf0cf7b2 581
+  s_ffa28ad36a53f3::t_180864057b4cf3 1,136,159,187,205,347,447,500,506,584,635
+test/rank_cache_test.dart
+  s_ffa28ad36a53f3::t_75bb7b35acc2b3 1,133,146
+  s_ffa28ad36a53f3::t_df8f26a0253a95 2,88
+test/book_updates_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,99
+test/review_fix_b03_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 2,19
+  s_ffa28ad36a53f3::t_2dea8403ccfcb5 1,29,50,81-82
+test/history_trim_hot_path_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 2,22
+  s_ffa28ad36a53f3::t_3d32f01806d707 1,34,54
+test/shelf_visual_alignment_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,26
+test/audio_download_store_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 2,19
+  s_ffa28ad36a53f3::t_7772b341c51b42 1,81,113,175
+test/review_fix_b02_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 2,16
+  s_ffa28ad36a53f3::t_f8b2b3d8ad1cdb 1,42,63,72,94
+test/comprehensive_data_boundaries_test.dart
+  s_ffa28ad36a53f3::t_34178a3de160c6 101
+  s_ffa28ad36a53f3::t_df8f26a0253a95 4,52
+  s_ffa28ad36a53f3::t_75bb7b35acc2b3 3,53-54,69-70,72,74
+  s_ffa28ad36a53f3::t_a449df69e25018 1-2,78-79,106-113,119-127,152
+test/library_shelf_shuqi_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,28
+test/rust_host_integration_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1-2,96,98-105
+test/shelf_groups_sheet_test.dart
+  s_ffa28ad36a53f3::t_df8f26a0253a95 1,34
+test/secure_key_provider_test.dart
+  s_ffa28ad36a53f3::t_214ee96594cad3 40-42,151-159,232-245,280
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1064618252b72200e2197ddde04d8eac36789589",
+  "prompts": {},
+  "sessions": {
+    "s_ffa28ad36a53f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c57c-647c-7d02-bc13-f5e6c60b6f70",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
