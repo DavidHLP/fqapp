@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import tomllib
 import unittest
 
 
@@ -24,9 +25,17 @@ class ReleaseInputsTest(unittest.TestCase):
         (self.root / "assets").mkdir()
         (self.root / ".gitignore").write_text("/build/\n/rust/target/\n*.private\n")
         (self.root / "rust/src").mkdir(parents=True)
+        lock = tomllib.loads((source / "rust/Cargo.lock").read_text())
+        cc_version = next(p["version"] for p in lock["package"] if p["name"] == "cc")
         (self.root / "rust/Cargo.toml").write_text(
-            '[package]\nname="flag_probe"\nversion="0.1.0"\nedition="2021"\n')
+            '[package]\nname="flag_probe"\nversion="0.1.0"\nedition="2021"\n'
+            f'[build-dependencies]\ncc="={cc_version}"\n')
         (self.root / "rust/src/main.rs").write_text("fn main() {}\n")
+        (self.root / "rust/probe.c").write_text("int c_value;\n")
+        (self.root / "rust/probe.cc").write_text("int cpp_value;\n")
+        (self.root / "rust/build.rs").write_text(
+            'fn main() { cc::Build::new().file("probe.c").compile("c_probe");'
+            'cc::Build::new().cpp(true).file("probe.cc").compile("cpp_probe"); }\n')
         self.run_command("cargo", "generate-lockfile", "--offline",
                          "--manifest-path", "rust/Cargo.toml")
         self.run_command("git", "init", "-q")
@@ -55,12 +64,10 @@ class ReleaseInputsTest(unittest.TestCase):
         tools.mkdir()
         flutter = tools / "flutter"
         flutter.write_text('''#!/usr/bin/env python3
-import json, os, pathlib, shlex, subprocess
+import json, os, pathlib, subprocess
 subprocess.run(["cargo", "check", "--offline", "--quiet", "--manifest-path", "rust/Cargo.toml"], check=True)
 out = pathlib.Path("build/linux/x64/release/bundle")
 out.mkdir(parents=True)
-for key in ("CFLAGS", "CXXFLAGS"):
-    subprocess.run(["cc", *shlex.split(os.environ[key]), "-x", "c", "-c", "-", "-o", str(out / (key + ".o"))], input=b"int value;", check=True)
 (out / "flags.json").write_text(json.dumps({k: os.environ[k] for k in ("CARGO_ENCODED_RUSTFLAGS", "CFLAGS", "CXXFLAGS")}))
 ''')
         flutter.chmod(0o755)

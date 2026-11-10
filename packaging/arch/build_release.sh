@@ -25,6 +25,8 @@ PY
 )
 export CFLAGS="${CFLAGS:-} $maps"
 export CXXFLAGS="${CXXFLAGS:-} $maps"
+# cc-rs otherwise splits even quoted C/C++ paths on whitespace.
+export CC_SHELL_ESCAPED_FLAGS=1
 export CARGO_NET_OFFLINE=true
 flutter build linux --release --no-pub
 # Provenance marker only after a successful build, never copied from old caches.
