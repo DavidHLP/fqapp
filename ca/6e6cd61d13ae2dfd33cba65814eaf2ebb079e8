@@ -1,0 +1,61 @@
+test/support/library_backup_fixture.dart
+  s_a7197535e5b82c::t_737595d3ba77b0 1-13,32-39
+  s_a7197535e5b82c::t_54af6604eead8f 14-31
+test/library_recovery_test.dart
+  s_a7197535e5b82c::t_54af6604eead8f 25-45,47-78,84-123,125-167
+  s_a7197535e5b82c::t_8c56c1e8e7d08c 1-24,46,79-83,124,168
+test/library_backup_page_groups_test.dart
+  s_a7197535e5b82c::t_f733ddeb03953c 29,38,51
+  s_a7197535e5b82c::t_f7727b31d38eb7 4-5,128-134
+  s_a7197535e5b82c::t_4cd6e18e365dce 135-146
+  s_a7197535e5b82c::t_1adb08756424db 17,21
+  s_a7197535e5b82c::t_76b1a1c37d299d 22,147-148
+lib/services/library_backup_service.dart
+  s_a7197535e5b82c::t_d47dae95274272 4,10-11,98,129,169-175
+  s_959fb3a55b2225::t_c00990e8616d4a 176
+lib/services/linux_library_recovery.dart
+  s_a7197535e5b82c::t_54af6604eead8f 12,59-61
+  s_a7197535e5b82c::t_2ad18126e67d37 13,62-63
+  s_a7197535e5b82c::t_d47dae95274272 1-11,14-58,64-78
+test/library_backup_groups_test.dart
+  s_a7197535e5b82c::t_1adb08756424db 14,18-19,58-84
+  s_a7197535e5b82c::t_a6b19ccd90d03b 85
+  s_a7197535e5b82c::t_f733ddeb03953c 27,35,51
+test/support/library_recovery_process.dart
+  s_a7197535e5b82c::t_54af6604eead8f 37-38
+  s_a7197535e5b82c::t_8c56c1e8e7d08c 1-36,39-45
+test/library_backup_test.dart
+  s_a7197535e5b82c::t_f733ddeb03953c 23,31,40
+  s_a7197535e5b82c::t_d671f0fd08ae84 130
+  s_a7197535e5b82c::t_a6b19ccd90d03b 44-46,50-51,56-61
+  s_a7197535e5b82c::t_1adb08756424db 13,18,47-49,52-55
+  s_a7197535e5b82c::t_6f02224191f90a 19
+lib/pages/library_backup_page.dart
+  s_a7197535e5b82c::t_d47dae95274272 22,61-63,363-364
+docs/linux/LIBRARY-RECOVERY.md
+  s_a7197535e5b82c::t_ab9fa7176d5038 1-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ca6e6cd61d13ae2dfd33cba65814eaf2ebb079e8",
+  "prompts": {},
+  "sessions": {
+    "s_959fb3a55b2225": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c560-a515-7172-81ee-c0f8f1af0bb9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_a7197535e5b82c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c561-9c02-7352-83c4-bbb9106c9767",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
