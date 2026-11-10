@@ -1,0 +1,19 @@
+integration_test/linux_runtime_test.dart
+  s_55e4328d1841ff::t_91ffe3f05442ab 204-208
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e469d1dcc4a90ed1b4248d51778cf8115cec0050",
+  "prompts": {},
+  "sessions": {
+    "s_55e4328d1841ff": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c5b5-9173-7e50-93f9-39428ebf22b4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
