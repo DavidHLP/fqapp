@@ -355,8 +355,11 @@ void main() {
     final pool = File('${root.path}/backend/config/device_pool.json');
     await pool.parent.create(recursive: true);
     await pool.writeAsString(pooledDevicesJson());
+    final reservation = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    final port = reservation.port;
+    await reservation.close();
     final backend = BackendService(
-      assets: _HostAssets(pooledDevicesJson()),
+      assets: _HostAssets(pooledDevicesJson(), port),
       supportDirectory: () async => root,
       transport: RustBackendTransport(mockUpstreamOrigin: mockOrigin),
       startupTimeout: const Duration(seconds: 10),
@@ -406,13 +409,14 @@ Map<String, dynamic> _videoPayload({bool includeH264 = false}) => {
 
 /// Minimal bundle so BackendService's deployment step has real files to copy.
 class _HostAssets extends CachingAssetBundle {
-  _HostAssets(this.poolJson);
+  _HostAssets(this.poolJson, this.port);
 
   final String poolJson;
+  final int port;
 
   Map<String, String> get _contents => <String, String>{
     'assets/config/config.json':
-        '{"algorithm_type":"8404","port":0,"anti_crawler":{"enabled":false,"redirect_url":""}}',
+        '{"algorithm_type":"8404","port":$port,"anti_crawler":{"enabled":false,"redirect_url":""}}',
     'assets/config/device_pool.example.json': poolJson,
     'assets/config/filter.json': '{"routes":{}}',
   };

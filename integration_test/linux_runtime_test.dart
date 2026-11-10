@@ -69,7 +69,7 @@ void main() {
     tester,
   ) async {
     // Separate fixture: this does not pass the failing fresh-profile acceptance.
-    expect(Platform.environment['HOME'], startsWith('/tmp/fqapp-acceptance-'));
+    expect(Platform.environment['HOME'], startsWith('${Directory.systemTemp.path}/fqapp-acceptance-'));
     final key = await SecureKeyProvider.instance.devicePoolKey(
       allowCreate: true,
     );
