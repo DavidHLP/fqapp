@@ -1,0 +1,45 @@
+test/library_recovery_matrix_test.dart
+  s_c51b2b000de5d7::t_8d9821b623881a 44,48-97
+  s_c51b2b000de5d7::t_61ea0437451012 1-43,45-47,98-115
+lib/pages/library_backup_page.dart
+  s_c51b2b000de5d7::t_d6526ae79acf42 15,187,190-194
+  s_c51b2b000de5d7::t_2b54bde625f3f0 188,196-197
+  s_c51b2b000de5d7::t_ab2b9f802c9262 189,195
+lib/services/library_backup_service.dart
+  s_c51b2b000de5d7::t_060aa9013b5354 192-193
+  s_c51b2b000de5d7::t_2b54bde625f3f0 100-112,195-196
+  s_c51b2b000de5d7::t_b94e5ffcccc338 2,19-20,169,171,176,194
+lib/services/linux_library_recovery.dart
+  s_c51b2b000de5d7::t_2b54bde625f3f0 2,14,18,22-41,43-47,49-64,66-80,86-120
+  s_c51b2b000de5d7::t_6ca39cb4ee182a 42,48,65,81-85
+lib/services/ai_reading/ai_backup.dart
+  s_c51b2b000de5d7::t_d6526ae79acf42 195-197,417
+test/library_backup_page_groups_test.dart
+  s_c51b2b000de5d7::t_d6526ae79acf42 128,139
+test/support/library_recovery_merge_child.dart
+  s_c51b2b000de5d7::t_9eef3afc89e7d5 5-78,94,140-141,147,256-287
+  s_c51b2b000de5d7::t_8d9821b623881a 144-146,152-253
+  s_c51b2b000de5d7::t_73297e75ec08e2 1-4,79-93,95-139,142-143,148-151,254-255,288-289
+docs/linux/LIBRARY-RECOVERY.md
+  s_c51b2b000de5d7::t_869826d000a777 3,23,32,36,38-45
+lib/main.dart
+  s_c51b2b000de5d7::t_87ff62550d3dca 1-3,10,22,24,92,157-262
+test/library_recovery_test.dart
+  s_c51b2b000de5d7::t_9269975e1fd17d 80-102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "41efbb2119e878d410f647bd18cdb0a43bdc09fa",
+  "prompts": {},
+  "sessions": {
+    "s_c51b2b000de5d7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c56c-8536-78e1-88bf-10011b67e541",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
