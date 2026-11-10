@@ -1,0 +1,21 @@
+test/linux_packaging_test.py
+  s_73a14774e35879::t_d6849a71002185 9,28-29,31-32,34-38,67
+packaging/arch/build_release.sh
+  s_73a14774e35879::t_d6849a71002185 28-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "44bec34ce1984601b059a131d0f12f4c27d9ca40",
+  "prompts": {},
+  "sessions": {
+    "s_73a14774e35879": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c43b-e348-7d01-b834-096a8f29cf29",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
