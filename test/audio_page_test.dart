@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fqapp/models/audio_extra.dart';
 import 'package:fqapp/models/audio_time_track.dart';
@@ -708,12 +707,12 @@ void main() {
     },
   );
 
-  testWidgets('Linux focus stays audible and hidden audio resumes once', (tester) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
-    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+  testWidgets('Linux focus stays audible and hidden audio resumes once', (
+    tester,
+  ) async {
     await AudioPreferences.instance.setBackgroundPlayback(false);
     final session = _Session();
-    await _mount(tester, session);
+    await _mount(tester, session, size: const Size(1440, 1000));
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     await _flush(tester);
     expect(session.players.single.isPlaying, isTrue);
@@ -722,16 +721,20 @@ void main() {
     expect(session.players.single.isPlaying, isFalse);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     await _flush(tester);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await _flush(tester);
     expect(session.players.single.isPlaying, isTrue);
     await tester.tap(find.byTooltip('暂停'));
     await _flush(tester);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await _flush(tester);
     expect(session.players.single.isPlaying, isFalse);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
 
   for (final lifecycle in [
     AppLifecycleState.inactive,
@@ -1099,8 +1102,9 @@ Future<void> _mount(
   WidgetTester tester,
   _Session session, {
   ThemeData? theme,
+  Size size = const Size(430, 932),
 }) async {
-  await tester.binding.setSurfaceSize(const Size(430, 932));
+  await tester.binding.setSurfaceSize(size);
   tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
   addTearDown(() async {
     await _unmount(tester);

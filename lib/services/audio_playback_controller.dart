@@ -483,8 +483,12 @@ class _AudioPlaybackController extends ChangeNotifier
     final generation = _visibilityResumeGeneration;
     if (generation == null) return;
     await _visibilityPause;
-    if (_closed || !_appActive || _generation != generation ||
-        _visibilityResumeGeneration != generation) return;
+    if (_closed ||
+        !_appActive ||
+        _generation != generation ||
+        _visibilityResumeGeneration != generation) {
+      return;
+    }
     _visibilityResumeGeneration = null;
     _update(() => _wantPlay = true);
     final player = _player;

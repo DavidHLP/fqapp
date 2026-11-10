@@ -744,8 +744,13 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _resumeAfterVisibility() async {
     final generation = _visibilityResumeGeneration;
     await _visibilityPause;
-    if (closed || !_appActive || generation == null ||
-        generation != _generation || _visibilityResumeGeneration != generation) return;
+    if (closed ||
+        !_appActive ||
+        generation == null ||
+        generation != _generation ||
+        _visibilityResumeGeneration != generation) {
+      return;
+    }
     _visibilityResumeGeneration = null;
     await resume();
   }
