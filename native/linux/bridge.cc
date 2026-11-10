@@ -371,7 +371,16 @@ FqappLinuxBridge *fqapp_linux_bridge_new(FlBinaryMessenger *m, GtkWindow *w) {
           b->bus, "/org/mpris/MediaPlayer2", b->info->interfaces[i], &vtable, b,
           nullptr, nullptr);
   b->system_bus = g_bus_get_sync(G_BUS_TYPE_SYSTEM, nullptr, nullptr);
-  if (b->system_bus) {
+  g_autoptr(GVariant) logind_owner =
+      b->system_bus
+          ? g_dbus_connection_call_sync(
+                b->system_bus, "org.freedesktop.DBus", "/org/freedesktop/DBus",
+                "org.freedesktop.DBus", "GetNameOwner",
+                g_variant_new("(s)", "org.freedesktop.login1"),
+                G_VARIANT_TYPE("(s)"), G_DBUS_CALL_FLAGS_NONE, 2000, nullptr,
+                nullptr)
+          : nullptr;
+  if (logind_owner) {
     b->suspend_subscription = g_dbus_connection_signal_subscribe(
         b->system_bus, "org.freedesktop.login1",
         "org.freedesktop.login1.Manager", "PrepareForSleep",
