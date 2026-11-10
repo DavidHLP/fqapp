@@ -126,8 +126,10 @@ public:
               job();
             if (connection) {
               pollfd fd{spd_fd(connection), 0, 0};
-              if (poll(&fd, 1, 0) > 0 &&
-                  (fd.revents & (POLLHUP | POLLERR | POLLNVAL))) {
+              // libspeechd closes its socket and sets -1 on its reader thread.
+              if (fd.fd < 0 ||
+                  (poll(&fd, 1, 0) > 0 &&
+                   (fd.revents & (POLLHUP | POLLERR | POLLNVAL)))) {
                 close();
                 emit("engine_stopped", "", events->generation);
               }
