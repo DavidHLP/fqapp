@@ -193,8 +193,11 @@ public:
         cancel();
         auto engine = str(field(args, "engine"));
         double rate = number(field(args, "rate"), 1);
+        double volume = number(field(args, "volume"), 1);
         if (!std::isfinite(rate) || rate < 0.25 || rate > 4)
           error = "语速超出范围";
+        else if (!std::isfinite(volume) || volume < 0 || volume > 1)
+          error = "音量超出范围";
         else if ((!engine.empty() &&
                   spd_set_output_module(connection, engine.c_str()) < 0) ||
                  spd_set_language(connection, "zh") < 0)
@@ -219,6 +222,10 @@ public:
                   connection, std::clamp(static_cast<int>(std::log2(rate) * 50),
                                          -100, 100)) < 0)
             error = "无法设置朗读语速";
+          if (error.empty() && field(args, "volume") &&
+              spd_set_volume(
+                  connection, static_cast<int>(std::lround(volume * 200 - 100))) < 0)
+            error = "无法设置朗读音量";
           if (error.empty())
             result = fl_value_new_int(4000);
         }

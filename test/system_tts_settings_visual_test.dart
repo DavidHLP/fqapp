@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -20,6 +21,7 @@ void main() {
   });
 
   tearDown(() {
+    debugDefaultTargetPlatformOverride = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
     einkModeNotifier.value = false;
@@ -40,6 +42,35 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets('Linux volume slider is labelled and persists bounded values', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+    await pumpPage(
+      tester,
+      (call) async => call.method == 'engines'
+          ? {
+              'engines': [
+                {'package': 'synthetic', 'label': 'Synthetic'},
+              ],
+            }
+          : null,
+    );
+    expect(find.text('朗读音量'), findsOneWidget);
+    final slider = tester
+        .widgetList<AppGlassSlider>(find.byType(AppGlassSlider))
+        .last;
+    expect([slider.min, slider.max, slider.value], [0, 1, 1]);
+    slider.onChanged!(0.25);
+    slider.onChangeEnd!(0.25);
+    await tester.pumpAndSettle();
+    expect(
+      (await SharedPreferences.getInstance()).getDouble('system_tts_volume'),
+      .25,
+    );
+    debugDefaultTargetPlatformOverride = null;
+  });
 
   testWidgets('没有朗读引擎时展示 ContentNotice 空态', (tester) async {
     await pumpPage(tester, (call) async {

@@ -6,12 +6,71 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fqapp/main.dart' as app;
 import 'package:fqapp/services/app_log.dart';
+import 'package:fqapp/services/encrypted_hive.dart';
+import 'package:fqapp/services/secure_key_provider.dart';
 import 'package:fqapp/services/linux_profile_ownership.dart';
 import 'package:fqapp/services/library_store.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('ownership busy offers dedicated exit without retry or writes', (
+    tester,
+  ) async {
+    var exited = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: app.AppBootstrap(
+          initializer: () async => throw LinuxOwnershipBusy(),
+          ownershipBusyExit: () => exited = true,
+          child: const Text('business'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('fqapp 已有实例正在运行'), findsOneWidget);
+    expect(find.text('重试'), findsNothing);
+    expect(find.text('business'), findsNothing);
+    await tester.tap(find.text('关闭并退出'));
+    expect(exited, isTrue);
+  });
+
+  testWidgets('persistent quarantine gates startup and late lazy isolation', (
+    tester,
+  ) async {
+    late Directory directory;
+    await tester.runAsync(() async {
+      directory = await Directory.systemTemp.createTemp('fqapp-quarantine-ui-');
+      File(
+        '${directory.path}/shelf_enc.unreadable-123.hive',
+      ).writeAsStringSync('synthetic');
+    });
+    Widget boot() => MaterialApp(
+      home: app.AppBootstrap(
+        quarantineDirectory: directory,
+        initializer: () async {},
+        child: const Text('business'),
+      ),
+    );
+    await tester.pumpWidget(boot());
+    await tester.pumpAndSettle();
+    expect(find.text('本地数据已隔离，尚未恢复'), findsOneWidget);
+    expect(find.text('business'), findsNothing);
+    expect(find.textContaining(directory.path), findsOneWidget);
+    await tester.tap(find.text('我已了解尚未恢复，继续使用当前资料'));
+    await tester.pumpAndSettle();
+    expect(find.text('business'), findsOneWidget);
+    EncryptedHive.quarantineChanges.value++;
+    await tester.pumpAndSettle();
+    expect(find.text('business'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(boot());
+    await tester.pumpAndSettle();
+    expect(find.text('本地数据已隔离，尚未恢复'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() => directory.delete(recursive: true));
+  });
+
   testWidgets('ownership failure blocks runtime and all business bootstrap', (
     tester,
   ) async {
@@ -300,4 +359,53 @@ void main() {
       await AppLog.instance.resetForTest();
     }
   });
+  for (final lazy in [false, true]) {
+    testWidgets('normal bootstrap blocks real wrong-key isolation lazy=$lazy', (
+      tester,
+    ) async {
+      late Directory directory;
+      late List<int> original;
+      await tester.runAsync(() async {
+        directory = await Directory.systemTemp.createTemp(
+          'fqapp-bootstrap-key-',
+        );
+        Hive.init(directory.path);
+        final box = await EncryptedHive.openBox<String>(
+          Hive,
+          'shelf',
+          keys: SecureKeyProvider(storage: InMemorySecureKeyStorage()),
+        );
+        await box.put('book', 'synthetic retained book');
+        await box.close();
+        original = File('${directory.path}/shelf_enc.hive').readAsBytesSync();
+      });
+      final ready = Completer<void>();
+      await tester.pumpWidget(MaterialApp(home: app.AppBootstrap(
+        quarantineDirectory: directory,
+        initializer: () => ready.future,
+        child: const Text('business'),
+      )));
+      await tester.runAsync(() async {
+        final wrong = SecureKeyProvider(storage: InMemorySecureKeyStorage());
+        if (lazy) {
+          await EncryptedHive.openLazyBox<String>(Hive, 'shelf', keys: wrong);
+        } else {
+          await EncryptedHive.openBox<String>(Hive, 'shelf', keys: wrong);
+        }
+        AppLog.instance.clear();
+        ready.complete();
+      });
+      await tester.pumpAndSettle();
+      expect(find.text('本地数据已隔离，尚未恢复'), findsOneWidget);
+      expect(find.text('business'), findsNothing);
+      final preserved = EncryptedHive.quarantines(directory);
+      expect(File(preserved.single.path).readAsBytesSync(), original);
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(() async {
+        await Hive.close();
+        await directory.delete(recursive: true);
+      });
+    });
+  }
+
 }

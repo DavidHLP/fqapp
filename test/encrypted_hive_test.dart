@@ -28,6 +28,37 @@ void main() {
     await dir.delete(recursive: true);
   });
 
+  for (final lazy in [false, true]) {
+    test('quarantine diagnostic persists for lazy=$lazy', () async {
+      final box = await EncryptedHive.openBox<dynamic>(
+        Hive,
+        'diagnostic',
+        keys: keys,
+      );
+      await box.put('record', 'retained');
+      await box.close();
+      final original = File(
+        '${dir.path}/diagnostic_enc.hive',
+      ).readAsBytesSync();
+      final wrong = SecureKeyProvider(storage: InMemorySecureKeyStorage());
+      if (lazy) {
+        await EncryptedHive.openLazyBox<dynamic>(
+          Hive,
+          'diagnostic',
+          keys: wrong,
+        );
+      } else {
+        await EncryptedHive.openBox<dynamic>(Hive, 'diagnostic', keys: wrong);
+      }
+      final events = EncryptedHive.quarantines(dir);
+      expect(events, isNotEmpty);
+      expect(events.first.boxName, 'diagnostic_enc');
+      expect(File(events.first.path).readAsBytesSync(), original);
+      await Hive.close();
+      expect(EncryptedHive.quarantines(dir).first.path, events.first.path);
+    });
+  }
+
   test('Linux missing key refuses normal and lazy plaintext boxes', () async {
     final owner = await LinuxProfileOwnership.acquire(
       dir,

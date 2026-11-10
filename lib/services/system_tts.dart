@@ -51,6 +51,7 @@ class SystemTts {
       await _call<int>('initialize', {
         'engine': prefs.engine,
         'rate': prefs.rate,
+        if (isLinuxDesktop && prefs.volume != null) 'volume': prefs.safeVolume,
       }) ??
       4000;
 
@@ -78,15 +79,24 @@ class SystemTts {
 }
 
 class SystemTtsPreferences {
-  const SystemTtsPreferences({this.engine, this.rate = 1});
+  const SystemTtsPreferences({this.engine, this.rate = 1, this.volume});
   final String? engine;
   final double rate;
+
+  /// 0..1 maps to libspeechd -100..100; null preserves the daemon default.
+  final double? volume;
+  double get safeVolume => volume?.isFinite == true ? volume!.clamp(0, 1) : 1;
 
   static Future<SystemTtsPreferences> load() async {
     final sp = await SharedPreferences.getInstance();
     final rate = sp.getDouble('system_tts_rate') ?? 1;
     return SystemTtsPreferences(
       engine: sp.getString('system_tts_engine'),
+      volume: sp.containsKey('system_tts_volume')
+          ? SystemTtsPreferences(
+              volume: sp.getDouble('system_tts_volume'),
+            ).safeVolume
+          : null,
       rate: rate.isFinite ? rate.clamp(0.5, 3) : 1,
     );
   }
@@ -99,6 +109,7 @@ class SystemTtsPreferences {
       await sp.setString('system_tts_engine', engine!);
     }
     await sp.setDouble('system_tts_rate', rate);
+    if (volume != null) await sp.setDouble('system_tts_volume', safeVolume);
   }
 }
 

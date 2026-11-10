@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fqapp/models/media_item.dart';
 import 'package:fqapp/services/audio_preferences.dart';
@@ -27,6 +28,30 @@ void main() {
   late List<MethodCall> calls;
   Completer<int>? initialization;
 
+  test(
+    'Linux volume clamps, persists and keeps other platform wire contracts',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      await SystemTts.initialize(await SystemTtsPreferences.load());
+      expect((calls.last.arguments as Map).containsKey('volume'), isFalse);
+      for (final value in [-1.0, 0.0, 0.5, 1.0, 2.0, double.nan]) {
+        final prefs = SystemTtsPreferences(volume: value);
+        await prefs.save();
+        final loaded = await SystemTtsPreferences.load();
+        expect(loaded.volume, prefs.safeVolume);
+        debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+        await SystemTts.initialize(loaded);
+        expect((calls.last.arguments as Map)['volume'], prefs.safeVolume);
+      }
+      for (final platform in [TargetPlatform.android, TargetPlatform.windows]) {
+        debugDefaultTargetPlatformOverride = platform;
+        await SystemTts.initialize(const SystemTtsPreferences());
+        expect((calls.last.arguments as Map).containsKey('volume'), isFalse);
+      }
+      debugDefaultTargetPlatformOverride = null;
+    },
+  );
+
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     AudioPreferences.instance.resetForTest();
@@ -43,6 +68,7 @@ void main() {
   });
 
   tearDown(() {
+    debugDefaultTargetPlatformOverride = null;
     messenger.setMockMethodCallHandler(_eventMethods, null);
     messenger.setMockMethodCallHandler(_methods, null);
     messenger.setMockMethodCallHandler(_playerMethods, null);

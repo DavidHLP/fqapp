@@ -1,9 +1,15 @@
 import 'dart:io';
 
+class LinuxOwnershipBusy extends StateError {
+  LinuxOwnershipBusy() : super('fqapp 已有实例正在使用此资料');
+  static const exitStatus = 23;
+}
+
 /// One writer for both the profile directory and the shared Secret Service keys.
 /// Acquire before runtime deployment/Hive.init; close only after backend/Hive and
 /// outstanding key operations have stopped. Never unlink a live lock file.
 /// Acquire only on the main isolate: Dart locks are process-scoped on Linux.
+
 class LinuxProfileOwnership {
   LinuxProfileOwnership._(
     this.directory,
@@ -42,11 +48,20 @@ class LinuxProfileOwnership {
         final canonical = await dir.resolveSymbolicLinks();
         final path = '$canonical/.fqapp-writer.lock';
         if (paths.contains(path)) continue;
-        if (!_held.add(path)) throw StateError('fqapp 已有实例正在使用此资料');
+        if (!_held.add(path)) throw LinuxOwnershipBusy();
         paths.add(path);
         final handle = await File(path).open(mode: FileMode.append);
         locks.add(handle);
-        await handle.lock(FileLock.exclusive);
+        try {
+          await handle.lock(FileLock.exclusive);
+        } on FileSystemException catch (error) {
+          // fcntl contention is EAGAIN/EACCES; opening permission errors remain I/O errors.
+          if (error.osError?.errorCode == 11 ||
+              error.osError?.errorCode == 13) {
+            throw LinuxOwnershipBusy();
+          }
+          rethrow;
+        }
         // Hive may live in Documents; only our key namespace is private.
         final permissions = await Process.run('chmod', [
           if (identical(dir, namespace)) '700' else '600',

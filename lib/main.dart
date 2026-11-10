@@ -58,6 +58,7 @@ import 'services/playlet_share.dart';
 import 'services/poster_cache.dart';
 import 'services/shelf_group_store.dart';
 import 'services/shelf_store.dart';
+import 'services/encrypted_hive.dart';
 import 'services/shelf_view_store.dart';
 import 'services/swipe_guide_store.dart';
 import 'services/third_party_licenses.dart';
@@ -87,6 +88,7 @@ Future<void> main() async {
       MaterialApp(
         home: AppBootstrap(
           initializer: _prepareRuntime,
+          ownershipBusyExit: () => exit(LinuxOwnershipBusy.exitStatus),
           failureHelp:
               '请关闭其他 fqapp 实例后重试；若仍失败，请检查资料目录权限和 Secret Service。不要删除资料、密钥或未决标记。',
           child: const _LinuxRecoveryGate(child: ProviderScope(child: FqApp())),
@@ -494,6 +496,9 @@ class _FqAppState extends State<FqApp> {
                     localizationsDelegates:
                         GlobalMaterialLocalizations.delegates,
                     home: AppBootstrap(
+                      quarantineDirectory: Platform.isLinux
+                          ? LinuxProfileOwnership.current?.directory
+                          : null,
                       backendStarter: BackendService.instance.start,
                       backendMustSucceed: Platform.isLinux,
                       child: const RootShell(),
@@ -538,10 +543,15 @@ class AppBootstrap extends StatefulWidget {
   final bool backendMustSucceed;
   final Future<void> Function()? backendStarter;
 
+  final Directory? quarantineDirectory;
+  final VoidCallback? ownershipBusyExit;
+
   const AppBootstrap({
     super.key,
     required this.child,
     this.initializer,
+    this.quarantineDirectory,
+    this.ownershipBusyExit,
     this.failureHelp = '请检查设备可用空间、密钥服务和资料权限后重试；请勿删除资料或密钥。',
     this.backendMustSucceed = false,
     this.backendStarter,
@@ -552,6 +562,25 @@ class AppBootstrap extends StatefulWidget {
 }
 
 class _AppBootstrapState extends State<AppBootstrap> {
+  bool _ownershipBusy = false;
+  bool _quarantineConfirmed = false;
+  List<HiveQuarantineEvent> _quarantines = [];
+
+  void _refreshQuarantines() {
+    final directory = widget.quarantineDirectory;
+    if (directory == null) return;
+    setState(() {
+      _quarantines = EncryptedHive.quarantines(directory);
+      _quarantineConfirmed = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    EncryptedHive.quarantineChanges.removeListener(_refreshQuarantines);
+    super.dispose();
+  }
+
   bool _initializing = false;
   bool _ready = false;
   bool _failed = false;
@@ -560,6 +589,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
   @override
   void initState() {
     super.initState();
+    EncryptedHive.quarantineChanges.addListener(_refreshQuarantines);
     _initialize();
   }
 
@@ -588,8 +618,12 @@ class _AppBootstrapState extends State<AppBootstrap> {
     try {
       if (widget.backendMustSucceed) await _backendFuture;
       await (widget.initializer ?? _initializeLocalData)();
-      if (mounted) setState(() => _ready = true);
-    } catch (_) {
+      if (mounted) {
+        _refreshQuarantines();
+        setState(() => _ready = true);
+      }
+    } catch (error) {
+      _ownershipBusy = error is LinuxOwnershipBusy;
       // 这里不写日志：启动失败发生在持久化开启之前，而 AppLog 的写入会排到
       // 那条尚未完成的 I/O 之后（test/app_bootstrap_test.dart 的失败路径用例
       // 因此会挂到超时）。失败本身已经由界面的重试入口与 runZonedGuarded 呈现。
@@ -602,6 +636,30 @@ class _AppBootstrapState extends State<AppBootstrap> {
 
   @override
   Widget build(BuildContext context) {
+    if (_ready && _quarantines.isNotEmpty && !_quarantineConfirmed) {
+      return Scaffold(
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                const Text('本地数据已隔离，尚未恢复'),
+                const Text('密钥不匹配或文件损坏。原件保留在以下位置；新空箱不代表恢复成功。'),
+                for (final event in _quarantines)
+                  SelectableText('${event.boxName}: ${event.path}'),
+                const Text(
+                  '请先退出并复制整个资料目录保全。若有正确原密钥，请在隔离副本中解密验证后恢复，切勿覆盖原件；本操作不会读取或修改系统密钥环。若有应用备份，可确认后进入设置的备份恢复入口，按冷启动恢复流程导入。不要删除隔离文件或重置密钥。',
+                ),
+                OutlinedButton(
+                  onPressed: () => setState(() => _quarantineConfirmed = true),
+                  child: const Text('我已了解尚未恢复，继续使用当前资料'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     if (_ready) return widget.child;
     return Scaffold(
       body: SafeArea(
@@ -619,14 +677,27 @@ class _AppBootstrapState extends State<AppBootstrap> {
                 else
                   const CircularProgressIndicator(),
                 const SizedBox(height: 16),
-                Text(_failed ? '无法读取本地数据' : '正在读取本地数据…'),
+                Text(
+                  _ownershipBusy
+                      ? 'fqapp 已有实例正在运行'
+                      : _failed
+                      ? '无法读取本地数据'
+                      : '正在读取本地数据…',
+                ),
                 if (_failed) ...[
                   const SizedBox(height: 8),
-                  Text(widget.failureHelp, textAlign: TextAlign.center),
+                  Text(
+                    _ownershipBusy
+                        ? '此资料已被另一个 fqapp 实例占用。请返回已有窗口；关闭此窗口将退出本次启动。'
+                        : widget.failureHelp,
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 16),
                   OutlinedButton(
-                    onPressed: _initialize,
-                    child: const Text('重试'),
+                    onPressed: _ownershipBusy
+                        ? widget.ownershipBusyExit
+                        : _initialize,
+                    child: Text(_ownershipBusy ? '关闭并退出' : '重试'),
                   ),
                 ],
               ],

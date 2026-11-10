@@ -18,6 +18,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../services/audio_floating_routes.dart';
+import '../services/desktop_platform.dart';
 import '../services/system_tts.dart';
 import '../widgets/settings/settings_archive_rows.dart';
 import '../widgets/wenku/wenku_ui.dart';
@@ -172,6 +173,38 @@ class _SystemTtsSettingsPageState extends State<SystemTtsSettingsPage>
                             ),
                           _enginePicker(selectedMissing, defaultLabel),
                           _ratePicker(),
+                          if (isLinuxDesktop) ...[
+                            const SizedBox(height: 16),
+                            const AppText('朗读音量'),
+                            Semantics(
+                              label: '朗读音量',
+                              child: GlassControls.slider(
+                                context,
+                                value: _prefs.safeVolume,
+                                min: 0,
+                                max: 1,
+                                divisions: 100,
+                                onChanged: _saving
+                                    ? null
+                                    : (value) => setState(() {
+                                        _prefs = SystemTtsPreferences(
+                                          engine: _prefs.engine,
+                                          rate: _prefs.rate,
+                                          volume: value,
+                                        );
+                                      }),
+                                onChangeEnd: _saving
+                                    ? null
+                                    : (value) => _save(
+                                        SystemTtsPreferences(
+                                          engine: _prefs.engine,
+                                          rate: _prefs.rate,
+                                          volume: value,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -220,6 +253,7 @@ class _SystemTtsSettingsPageState extends State<SystemTtsSettingsPage>
               SystemTtsPreferences(
                 engine: value.isEmpty ? null : value,
                 rate: _prefs.rate,
+                volume: _prefs.volume,
               ),
             ),
     );
@@ -259,12 +293,17 @@ class _SystemTtsSettingsPageState extends State<SystemTtsSettingsPage>
                   _prefs = SystemTtsPreferences(
                     engine: _prefs.engine,
                     rate: value,
+                    volume: _prefs.volume,
                   );
                 }),
           onChangeEnd: _saving
               ? null
               : (value) => _save(
-                  SystemTtsPreferences(engine: _prefs.engine, rate: value),
+                  SystemTtsPreferences(
+                    engine: _prefs.engine,
+                    rate: value,
+                    volume: _prefs.volume,
+                  ),
                 ),
         ),
       ],

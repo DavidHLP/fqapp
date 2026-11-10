@@ -30,8 +30,12 @@ void main() {
             .first,
         'owned',
       );
-      final second = await Process.run(dart, arguments);
+      final second = await Process.run(dart, [...arguments, 'protected-write']);
       expect(second.exitCode, 23);
+      expect(
+        File('${directory.path}/profile/protected-write').existsSync(),
+        isFalse,
+      );
       // Another profile still shares production keys and must also be blocked.
       final other = await Process.run(dart, [
         arguments[0],
@@ -50,6 +54,22 @@ void main() {
     expect(written.exitCode, 0, reason: '${written.stderr}');
     final readback = await Process.run(dart, [...arguments, 'hive-read']);
     expect(readback.exitCode, 0, reason: '${readback.stderr}');
+  });
+
+  test('lock file permission errors remain retryable I/O failures', () async {
+    final namespace = await Directory('${directory.path}/readonly').create();
+    await Process.run('chmod', ['500', namespace.path]);
+    try {
+      await expectLater(LinuxProfileOwnership.acquire(
+        Directory('${directory.path}/profile'), keyNamespaceDirectory: namespace,
+      ), throwsA(isA<FileSystemException>()));
+    } finally {
+      await Process.run('chmod', ['700', namespace.path]);
+    }
+    final owner = await LinuxProfileOwnership.acquire(
+      Directory('${directory.path}/profile'), keyNamespaceDirectory: namespace,
+    );
+    await owner.close();
   });
 
   test('profile path guard rejects a different Hive directory', () async {

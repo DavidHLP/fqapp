@@ -1,10 +1,17 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 import 'package:hive_ce/hive.dart';
 
 import 'app_log.dart';
 import 'secure_key_provider.dart';
 import 'linux_profile_ownership.dart';
+
+class HiveQuarantineEvent {
+  const HiveQuarantineEvent(this.boxName, this.path);
+  final String boxName;
+  final String path;
+}
 
 /// Opens every Hive box encrypted (hive_ce, AES-256 `HiveAesCipher`).
 ///
@@ -27,8 +34,24 @@ import 'linux_profile_ownership.dart';
 /// Finding an encrypted box with no available key also fails closed (see
 /// [openBox]): opening the legacy box there would hide existing records
 /// behind an empty one and write plaintext beside them.
+
 class EncryptedHive {
   EncryptedHive._();
+
+  static final quarantineChanges = ValueNotifier<int>(0);
+
+  /// Preserved filenames are durable diagnostics, including across restarts.
+  static List<HiveQuarantineEvent> quarantines(Directory directory) => [
+    if (directory.existsSync())
+      for (final file in directory.listSync().whereType<File>())
+        if (RegExp(
+          r'_enc\.unreadable-\d+\.(hive|hivec|lock)$',
+        ).hasMatch(file.path))
+          HiveQuarantineEvent(
+            file.uri.pathSegments.last.split('.unreadable-').first,
+            file.path,
+          ),
+  ];
 
   /// Name of the encrypted box for a legacy box [name].
   static String encryptedBoxName(String name) => '${name}_enc';
@@ -83,6 +106,7 @@ class EncryptedHive {
       final target = File('$base.unreadable-$stamp$extension');
       file.renameSync(target.path);
       preserved.add(target);
+      quarantineChanges.value++;
     }
     return preserved;
   }

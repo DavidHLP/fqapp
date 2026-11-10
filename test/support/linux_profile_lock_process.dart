@@ -9,6 +9,9 @@ Future<void> main(List<String> arguments) async {
       Directory(arguments[0]),
       keyNamespaceDirectory: Directory(arguments[1]),
     );
+    if (arguments.contains('protected-write')) {
+      File('${arguments[0]}/protected-write').writeAsStringSync('unexpected');
+    }
     if (arguments.contains('hive-write') || arguments.contains('hive-read')) {
       Hive.init(owner.directory.path);
       final box = await Hive.openBox<String>(
@@ -26,7 +29,9 @@ Future<void> main(List<String> arguments) async {
     stdout.writeln('owned');
     if (arguments.contains('hold')) await stdin.first;
     await owner.close();
+  } on LinuxOwnershipBusy {
+    exitCode = LinuxOwnershipBusy.exitStatus;
   } catch (_) {
-    exitCode = 23;
+    exitCode = 24;
   }
 }

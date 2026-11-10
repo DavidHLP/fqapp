@@ -50,7 +50,7 @@ boundaries. It never opens a real login, keyring, audio output or system service
 
 ## Dart contract
 
-- `fqapp/system_tts`: `engines`, `initialize({engine,rate}) -> 4000`,
+- `fqapp/system_tts`: `engines`, `initialize({engine,rate,volume}) -> 4000`,
   `speak({text,id,queue})`, `pause`, `stop`, `shutdown`, `settings`.
   Events on `fqapp/system_tts_events`: `{type:start|done|error,id}` and
   `{type:engine_stopped}`. Stop/pause cancel only this client, discard queued IDs
@@ -58,6 +58,8 @@ boundaries. It never opens a real login, keyring, audio output or system service
   current sentence on resume. No `stop_all`/`cancel_all` affects other apps.
   Initialize requires a listed zh/cmn voice. Rate maps logarithmically into the
   SSIP -100..100 scale; this is a relative setting requiring voice calibration.
+  Volume accepts 0..1 and maps linearly to SSIP -100..100; 1 maps
+  to SSIP 100. Unset volume preserves the configured daemon default. It is set on the speech worker.
   Settings returns an actionable error because there is no universal graphical
   settings application. Runtime engine failures require real daemon validation.
 - `fqapp/fanqie_account`: `login -> String?`, `cancelLogin`, `clearSession`.

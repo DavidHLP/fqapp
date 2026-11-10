@@ -69,7 +69,10 @@ void main() {
     tester,
   ) async {
     // Separate fixture: this does not pass the failing fresh-profile acceptance.
-    expect(Platform.environment['HOME'], startsWith('${Directory.systemTemp.path}/fqapp-acceptance-'));
+    expect(
+      Platform.environment['HOME'],
+      startsWith('${Directory.systemTemp.path}/fqapp-acceptance-'),
+    );
     final key = await SecureKeyProvider.instance.devicePoolKey(
       allowCreate: true,
     );
@@ -315,6 +318,26 @@ void main() {
     });
     addTearDown(subscription.cancel);
     expect((await SystemTts.engines()).engines, isNotEmpty);
+    for (final volume in [-0.01, 1.01, double.nan]) {
+      await expectLater(
+        const MethodChannel(
+          'fqapp/system_tts',
+        ).invokeMethod<int>('initialize', {'rate': 1.0, 'volume': volume}),
+        throwsA(
+          isA<PlatformException>().having(
+            (e) => e.message,
+            'message',
+            contains('音量超出范围'),
+          ),
+        ),
+      );
+    }
+    for (final volume in [0.0, 0.5, 1.0]) {
+      expect(
+        await SystemTts.initialize(SystemTtsPreferences(volume: volume)),
+        4000,
+      );
+    }
     await SystemTts.initialize(const SystemTtsPreferences());
     await SystemTts.speak('这是隔离中文短句。', 'complete');
     await wait(
