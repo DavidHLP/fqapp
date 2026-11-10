@@ -1,0 +1,23 @@
+packaging/arch/PKGBUILD
+  s_53d50d5fd0d7fa::t_bf09aa002f6217 4,12
+packaging/arch/DEPENDENCIES.md
+  s_53d50d5fd0d7fa::t_bf09aa002f6217 17-20
+LINUX.md
+  s_53d50d5fd0d7fa::t_bf09aa002f6217 99-106
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a6b366ae534b1c24cd98f7228057159ddbf9d660",
+  "prompts": {},
+  "sessions": {
+    "s_53d50d5fd0d7fa": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c5e4-feed-7822-a30b-e6efaa886f17",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
