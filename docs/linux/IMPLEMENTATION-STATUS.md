@@ -175,3 +175,63 @@ was undertaken; final integration/review fixes and repackaging follow separately
 `merge-runtime-final-handoff.md` records exact identities and per-command bounds.
 Final-head CookieManager checks passed on all three virtual sessions; no official
 account or physical acceptance is inferred. The earlier X11 stall remains visible.
+
+## Reviewed candidate integration — 2026-11-10
+
+This section supersedes the earlier candidate identity and automated counts above.
+The complete review-fix commit 287a888 was integrated as 4802fa1: SPEC01 persistent
+quarantine diagnostics gate normal eager/lazy startup without deleting preserved
+ciphertext; SPEC02 distinguishes ownership contention and exposes dedicated exit23;
+T40 persists bounded Linux TTS volume and validates/mapping it in real libspeechd.
+Existing runtime TMPDIR/FFI ephemeral-port fixes and packaging guards/encoded flags
+remain. Primary fixes 44bec34/3b1735b add real cc-rs C/C++ spaced-path consumption,
+CC_SHELL_ESCAPED_FLAGS=1, and explicit isolated-test CARGO_HOME.
+
+Test-only follow-up e469d1d keeps pumping the real texture while initial native
+play acknowledgement is pending, using the existing creation wait pattern.
+Production timeouts and all media assertions remain. Original no-pump failures
+remain in reviewed-validation/ and reviewed-final-validation/: supporting X11
+and two XWayland attempts timed out at initial play. XWayland passed after the
+pump correction. This does not establish that every production playback timeout
+or the historical X11 disposal/entry stall is fixed.
+
+The complete cycle is bound to e469d1dcc4a90ed1b4248d51778cf8115cec0050;
+reviewed-complete-validation/results.json records command start/end HEAD.
+Full analyze has no issues. Full Flutter: 3524 passed, 0 failed, 3 original skips,
+3527 unique suite/name cases; independent real FFI9 has zero skips and overlaps
+the full suite. Rust:262 passed,2 original live-upstream ignored; native:102 passed,
+zero skips; native whole-archive Werror compile/link and C++ boundary1 passed.
+The 8-point SIGKILL recovery matrix passed both inside full and independently;
+these are repeated executions of one test, never added to the unique count.
+Python packaging2 passed using real locked cc-rs C/C++ Build; source guard passed.
+Real WebKit CookieManager passed in all three private virtual session modes.
+
+Each of Wayland/XWayland/X11 passed six runtime tests after the pump correction,
+including fresh production startup with real disposable Secret Service and no
+pre-injected pool key, import/reading, software texture/seek/MPRIS, native volume
+0/.5/1 acceptance and invalid-volume refusal, TTS completion/cancel/disconnect.
+Six distinct runtime cases repeated in three modes are 18 executions, not 18
+features. Lifecycle inputs remain injected; null ALSA is not audible acceptance.
+
+Only this status document changes after the complete test cycle. The final
+commit is then rebuilt from an exact neutral Git checkout with isolated SDK/pub/
+Cargo caches; no old bundle or provenance marker is copied. Candidate output is
+reviewed-candidate-<final-shortsha>/ outside this repository. Its manifest binds
+final HEAD/tree, test HEAD/tree and every recorded test input hash; the source
+archive must exactly equal git archive of final HEAD. The external
+merge-reviewed-candidate-handoff.md records the actual package path and hashes.
+No post-package status commit is permitted without rebuilding.
+
+The original three Flutter skips are Windows SDK semantics backport, pagination
+preview/font, and captured real-home payload. Two Rust Shuqi live-upstream tests
+remain ignored. These are unexecuted, not passes. No skip/ignore was added and
+no counterexample or original assertion was deleted. Complete source/binary file
+inventories, available notices and locked external dependency license metadata
+are audit inputs, not asset-rights or full redistribution approval.
+
+External gates remain: clean Arch install and dependency/service setup; package
+upgrade/downgrade/uninstall/rollback, actual package ENOSPC/EACCES; authorized
+accounts; physical audio/GPU and four-media lock/suspend lifecycle; combined
+real-provider new-process Hive/pool readback and provider late-write/crash
+semantics; VM power loss; non-Linux runtime; remote CI; signing, corresponding
+external source and full asset/license rights review. No push/PR/watch or cleanup.
