@@ -1,0 +1,71 @@
+test/audio_page_test.dart
+  s_130e7d190284f8::t_647f7b0573ff57 4,711-734
+  s_130e7d190284f8::t_e688b1f6968c65 735
+test/desktop_platform_test.dart
+  s_130e7d190284f8::t_6b148cd34fb761 4,54-55,61-86,88-90
+  s_130e7d190284f8::t_647f7b0573ff57 1-2,51-53,56-60,87
+  s_130e7d190284f8::t_dda164a56c7a2d 91
+lib/pages/reader/reader_page_build.dart
+  s_130e7d190284f8::t_42cdb9c84f8b21 6
+lib/pages/settings_page.dart
+  s_130e7d190284f8::t_42cdb9c84f8b21 79,122,140-141,197
+lib/pages/home_page.dart
+  s_130e7d190284f8::t_42cdb9c84f8b21 292
+lib/services/audio_playback_controller.dart
+  s_130e7d190284f8::t_647f7b0573ff57 471
+  s_130e7d190284f8::t_13b1813e6b9365 489-491
+  s_130e7d190284f8::t_af87cc40da3d80 56-57,216,438,460-466,472-474,482-488,1152
+  s_130e7d190284f8::t_6e9b86798bd954 492-493
+test/desktop_inactive_lifecycle_test.dart
+  s_130e7d190284f8::t_647f7b0573ff57 43-51
+lib/widgets/video_player_chrome.dart
+  s_130e7d190284f8::t_42cdb9c84f8b21 825,2335
+  s_130e7d190284f8::t_647f7b0573ff57 851-853
+lib/pages/player_page.dart
+  s_130e7d190284f8::t_42cdb9c84f8b21 871,1104,1977
+lib/pages/audio_page.dart
+  s_130e7d190284f8::t_42cdb9c84f8b21 700
+lib/services/platform_capabilities.dart
+  s_130e7d190284f8::t_6b148cd34fb761 10-11
+lib/pages/detail_page.dart
+  s_130e7d190284f8::t_42cdb9c84f8b21 553
+test/system_tts_test.dart
+  s_130e7d190284f8::t_647f7b0573ff57 4,258-286
+  s_130e7d190284f8::t_d955e711367da8 287
+lib/main.dart
+  s_130e7d190284f8::t_6b148cd34fb761 80-81
+  s_130e7d190284f8::t_42cdb9c84f8b21 83,102,124-125,256,260,317,611
+lib/pages/drama_page.dart
+  s_130e7d190284f8::t_42cdb9c84f8b21 266,538,594,1551,1576,1699,1775,1842,2396,2439,3957,3998,4659
+lib/pages/search_page.dart
+  s_130e7d190284f8::t_42cdb9c84f8b21 657,686
+lib/services/desktop_platform.dart
+  s_130e7d190284f8::t_6b148cd34fb761 603,606-617
+  s_130e7d190284f8::t_647f7b0573ff57 682
+  s_130e7d190284f8::t_42cdb9c84f8b21 29-35,40,78-80,84,108-116,200-208,212,226-229,244,316-318,321-323,424,431,468-474,599-601,622,653-681,683-694
+  s_130e7d190284f8::t_250404ef7f8128 695-696
+lib/services/system_tts.dart
+  s_130e7d190284f8::t_af87cc40da3d80 2,226-227,603,716-730,744-750
+  s_130e7d190284f8::t_647f7b0573ff57 294
+  s_130e7d190284f8::t_98f5685f5e8883 751-752
+lib/pages/category_page.dart
+  s_130e7d190284f8::t_42cdb9c84f8b21 325
+lib/pages/comic_reader_page.dart
+  s_130e7d190284f8::t_42cdb9c84f8b21 200
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f5470a95819fb3c7829ce0039dfb2bc5e7ff99a6",
+  "prompts": {},
+  "sessions": {
+    "s_130e7d190284f8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c54a-dc8b-7be3-a707-e804ffc6220a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
