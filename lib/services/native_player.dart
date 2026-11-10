@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import 'app_log.dart';
 import 'audio_preferences.dart';
+import 'desktop_platform.dart' show isLinuxDesktop;
 import 'player_preferences.dart';
 
 // Codec metadata only: never log the whole platform payload or exception text.
@@ -79,6 +80,30 @@ class NativePlayer {
   }
 
   static void Function(String action)? _onRemoteAction;
+  static void Function(int positionMs)? _onRemoteSeek;
+  static int _remoteGeneration = 0;
+  static String allocateRemoteOwner() => 'media-${++_remoteGeneration}';
+  static String? _remoteOwner;
+  static bool ownsRemoteOwner(String owner) => _remoteOwner == owner;
+  int remoteTransportRevision = 0;
+  static final _remoteHandlers =
+      <
+        String,
+        ({
+          void Function(String)? action,
+          void Function(int)? seek,
+          VoidCallback? noisy,
+        })
+      >{};
+  static void claimRemoteOwner(String owner) {
+    final handler = _remoteHandlers[owner];
+    if (handler == null) return;
+    _remoteOwner = owner;
+    _onRemoteAction = handler.action;
+    _onRemoteSeek = handler.seek;
+    _onBecomingNoisy = handler.noisy;
+  }
+
   static VoidCallback? _onBecomingNoisy;
   static int? _floatingHandlerOwner;
   static void Function(String action)? _onFloatingAction;
@@ -127,13 +152,28 @@ class NativePlayer {
   static void setRemoteCommandHandler({
     void Function(String action)? onAction,
     VoidCallback? onBecomingNoisy,
+    String? owner,
+    void Function(int positionMs)? onSeek,
   }) {
+    if (owner != null) {
+      _remoteHandlers[owner] = (
+        action: onAction,
+        seek: onSeek,
+        noisy: onBecomingNoisy,
+      );
+    }
+    _remoteOwner = owner;
+    _onRemoteSeek = onSeek;
     _onRemoteAction = onAction;
     _onBecomingNoisy = onBecomingNoisy;
     _channel.setMethodCallHandler(_handleMethodCall);
   }
 
-  static void clearRemoteCommandHandler() {
+  static void clearRemoteCommandHandler({String? owner}) {
+    if (owner != null) _remoteHandlers.remove(owner);
+    if (owner != null && owner != _remoteOwner) return;
+    _remoteOwner = null;
+    _onRemoteSeek = null;
     _onRemoteAction = null;
     _onBecomingNoisy = null;
   }
@@ -183,7 +223,12 @@ class NativePlayer {
             : raw is String
             ? raw
             : null;
-        if (action != null) {
+        if (isLinuxDesktop && (raw is! Map || raw['owner'] != _remoteOwner)) {
+          return null;
+        }
+        if (action == 'seekTo' && raw is Map && raw['positionMs'] is int) {
+          _onRemoteSeek?.call(raw['positionMs'] as int);
+        } else if (action != null) {
           _onRemoteAction?.call(action);
         }
       case 'onAudioBecomingNoisy':
@@ -405,6 +450,34 @@ class NativePlayer {
     }
   }
 
+  final String _videoOwner = allocateRemoteOwner();
+  double _mediaRate = 1;
+  String mediaTitle = '视频';
+  String mediaEpisode = '';
+  bool get ownsDesktopMedia => !isLinuxDesktop || _remoteOwner == _videoOwner;
+  void _syncVideoMedia({bool seeked = false}) {
+    if (!isLinuxDesktop ||
+        audioOnly ||
+        _disposed ||
+        _remoteOwner != _videoOwner) {
+      return;
+    }
+    unawaited(
+      startListenForeground(
+        owner: _videoOwner,
+        title: mediaTitle,
+        episode: mediaEpisode,
+        playing: _playing && _playWhenReady,
+        hasPrev: false,
+        hasNext: false,
+        positionMs: _position.inMilliseconds,
+        durationMs: _duration.inMilliseconds,
+        speed: _mediaRate,
+        seeked: seeked,
+      ),
+    );
+  }
+
   Future<void> play() => _setPlayWhenReady(true);
   Future<void> pause() => _setPlayWhenReady(false);
 
@@ -419,6 +492,33 @@ class NativePlayer {
         if (_disposed || generation != _playWhenReadyGeneration) return;
       }
       await _invoke(value ? 'play' : 'pause');
+      if (isLinuxDesktop &&
+          !audioOnly &&
+          !_disposed &&
+          _playWhenReady == value) {
+        if (value) {
+          setRemoteCommandHandler(
+            owner: _videoOwner,
+            onAction: (action) {
+              remoteTransportRevision++;
+              switch (action) {
+                case 'play':
+                  unawaited(play());
+                case 'pause':
+                  unawaited(pause());
+                case 'playPause':
+                  unawaited(_playWhenReady ? pause() : play());
+                case 'stop':
+                  clearRemoteCommandHandler(owner: _videoOwner);
+                  unawaited(pause());
+                  unawaited(stopListenForeground(owner: _videoOwner));
+              }
+            },
+            onSeek: (ms) => unawaited(seek(Duration(milliseconds: ms))),
+          );
+        }
+        _syncVideoMedia();
+      }
     } catch (_) {
       if (!_disposed && generation == _playWhenReadyGeneration) {
         _updatePlayWhenReady(previous);
@@ -445,12 +545,17 @@ class NativePlayer {
     _position = position;
     _completed = false;
     _positionCtrl.add(position);
+    _syncVideoMedia(seeked: true);
   }
 
   Future<void> setVolume(double volume) =>
       _invoke('setVolume', {'volume': volume});
 
-  Future<void> setRate(double rate) => _invoke('setRate', {'rate': rate});
+  Future<void> setRate(double rate) async {
+    await _invoke('setRate', {'rate': rate});
+    _mediaRate = rate;
+    _syncVideoMedia();
+  }
 
   Future<void> _invoke(
     String method, [
@@ -487,13 +592,22 @@ class NativePlayer {
     int positionMs = 0,
     int durationMs = 0,
     double speed = 1,
+    String? owner,
+    bool seeked = false,
   }) async {
+    if (isLinuxDesktop && (owner == null || owner != _remoteOwner)) return;
     try {
       // No .timeout() here on purpose: the call is best-effort and the
       // plugin replies synchronously, while Future.timeout() leaves a
       // pending 10s timer that breaks widget tests under FakeAsync when
       // the fire-and-forget call is still in flight at test end.
       await _channel.invokeMethod<void>('startListenForeground', {
+        if (isLinuxDesktop) ...{
+          'owner': owner,
+          'transportV2': true,
+          'seekSupported': _onRemoteSeek != null,
+          'seeked': seeked,
+        },
         'title': title,
         'episode': episode,
         'coverUrl': coverUrl,
@@ -504,17 +618,24 @@ class NativePlayer {
         'durationMs': durationMs,
         'speed': speed,
       });
+    } on PlatformException catch (error) {
+      if (isLinuxDesktop) AppLog.w('media', 'Linux 媒体会话不可用: ${error.code}');
     } catch (_) {
-      // Best effort when channel/platform is unavailable or testing.
+      // Optional platform integration.
     }
   }
 
-  static Future<void> stopListenForeground() async {
+  static Future<void> stopListenForeground({String? owner}) async {
     try {
       // Same as startListenForeground: no .timeout(), see above.
-      await _channel.invokeMethod<void>('stopListenForeground');
+      await _channel.invokeMethod<void>(
+        'stopListenForeground',
+        isLinuxDesktop && owner != null ? {'owner': owner} : null,
+      );
+    } on PlatformException catch (error) {
+      if (isLinuxDesktop) AppLog.w('media', 'Linux 媒体会话不可用: ${error.code}');
     } catch (_) {
-      // Best effort when channel/platform is unavailable or testing.
+      // Optional platform integration.
     }
   }
 
@@ -693,6 +814,10 @@ class NativePlayer {
   Future<void> dispose() => _disposeFuture ??= _dispose();
 
   Future<void> _dispose() async {
+    if (isLinuxDesktop && !audioOnly) {
+      clearRemoteCommandHandler(owner: _videoOwner);
+      await stopListenForeground(owner: _videoOwner);
+    }
     _disposed = true;
     if (_createFuture != null && !_createdCompleter.isCompleted) {
       _createdCompleter.completeError(StateError('NativePlayer disposed'));
@@ -819,11 +944,13 @@ class NativePlayer {
         if (ms <= 0) return;
         _duration = Duration(milliseconds: ms);
         _durationCtrl.add(_duration);
+        _syncVideoMedia();
       case 'playing':
         final value = event['value'];
         if (value is! bool) return;
         _playing = value;
         _playingCtrl.add(_playing);
+        _syncVideoMedia();
       case 'playWhenReady':
         final value = event['value'];
         if (value is! bool) return;

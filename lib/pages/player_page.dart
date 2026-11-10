@@ -246,6 +246,9 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (isLinuxDesktop) {
+      DesktopSystemSession.instance.addListener(_systemSessionChanged);
+    }
     // 小米公平运行内存：KILL 广播到达时刷一次播放进度，避免被杀丢进度。
     _unregisterFairMemoryFlush = FairMemoryService.instance
         .registerFlushHandler(_persistProgress);
@@ -812,6 +815,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    DesktopSystemSession.instance.removeListener(_systemSessionChanged);
     WidgetsBinding.instance.removeObserver(this);
     _unregisterFairMemoryFlush?.call();
     _unregisterFairMemoryFlush = null;
@@ -837,6 +841,9 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     PlayerToast.hide();
     super.dispose();
   }
+
+  void _systemSessionChanged() =>
+      didChangeAppLifecycleState(DesktopSystemSession.instance.lifecycle);
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -1384,6 +1391,8 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       trace.stage('create');
       final player = candidate =
           adopted ?? widget.playerFactory?.call() ?? NativePlayer();
+      player.mediaTitle = _seriesTitle.isNotEmpty ? _seriesTitle : widget.title;
+      player.mediaEpisode = _episodeTitle();
       _player = player;
       if (adopted == null) {
         await player.create(source.url, source.keyHex, startMs: startMs);
@@ -1539,6 +1548,8 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       await release;
       if (!_current(generation)) return;
       final fresh = candidate = widget.playerFactory?.call() ?? NativePlayer();
+      fresh.mediaTitle = _seriesTitle.isNotEmpty ? _seriesTitle : widget.title;
+      fresh.mediaEpisode = _episodeTitle();
       _player = fresh;
       // `_teardownPlayer` 把 `_activeIndex` 一并清空了，换档换的是同一集的
       // 另一路流，所以必须补回来：它为 null 时 `enabled`（下传给 chrome）

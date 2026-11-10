@@ -55,7 +55,9 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
 
 # Application build; see runner/CMakeLists.txt.
+add_subdirectory("../native/linux" "fqapp_native")
 add_subdirectory("runner")
+target_link_libraries(${BINARY_NAME} PRIVATE fqapp_linux_bridge)
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)

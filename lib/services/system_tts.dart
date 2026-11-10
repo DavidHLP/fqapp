@@ -275,7 +275,10 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
   double get progress =>
       _text.isEmpty ? 0 : (_offset / _text.length).clamp(0, 1);
   bool get _allowed =>
-      _appActive || AudioPreferences.instance.backgroundPlayback.value;
+      !(isLinuxDesktop && DesktopSystemSession.instance.suspended) &&
+      (_appActive || AudioPreferences.instance.backgroundPlayback.value);
+
+  final String _mediaOwner = NativePlayer.allocateRemoteOwner();
 
   void start() {
     if (_started || closed) return;
@@ -288,6 +291,9 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
     WidgetsBinding.instance.addObserver(this);
+    if (isLinuxDesktop) {
+      DesktopSystemSession.instance.addListener(_systemSessionChanged);
+    }
     book.replacementStore.changes.addListener(_replacementChanged);
     _appActive =
         WidgetsBinding.instance.lifecycleState == null ||
@@ -302,9 +308,14 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
       },
     );
     NativePlayer.setRemoteCommandHandler(
+      owner: _mediaOwner,
       onAction: (action) {
         if (closed) return;
         switch (action) {
+          case 'play':
+            unawaited(resume());
+          case 'pause':
+            unawaited(pause());
           case 'playPause':
             unawaited(toggle());
           case 'prev':
@@ -582,6 +593,7 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
     }
     final token = ++_generation;
     wantPlay = true;
+    if (isLinuxDesktop) NativePlayer.claimRemoteOwner(_mediaOwner);
     error = null;
     if (completed) {
       _offset = 0;
@@ -675,10 +687,12 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
     if (notification) {
       _notificationQueue = _notificationQueue.then((_) async {
         if (closed) return;
-        if (!AudioPreferences.instance.backgroundPlayback.value) {
-          await NativePlayer.stopListenForeground();
+        if (!isLinuxDesktop &&
+            !AudioPreferences.instance.backgroundPlayback.value) {
+          await NativePlayer.stopListenForeground(owner: _mediaOwner);
         } else {
           await NativePlayer.startListenForeground(
+            owner: _mediaOwner,
             title: book.title,
             episode: '系统朗读 · ${chapter.title}',
             coverUrl: book.coverUrl,
@@ -711,6 +725,11 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  void _systemSessionChanged() {
+    if (DesktopSystemSession.instance.suspended) _ready = false;
+    didChangeAppLifecycleState(DesktopSystemSession.instance.lifecycle);
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _appActive = desktopInactiveStillVisible(state);
@@ -723,7 +742,7 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
       if (!_allowed && wantPlay) {
         _visibilityPause = _pauseForInterruption();
         _visibilityResumeGeneration = _generation;
-      } else if (_appActive && _visibilityResumeGeneration != null) {
+      } else if (_allowed && _visibilityResumeGeneration != null) {
         unawaited(_resumeAfterVisibility());
       }
       return;
@@ -745,7 +764,8 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
     final generation = _visibilityResumeGeneration;
     await _visibilityPause;
     if (closed ||
-        !_appActive ||
+        !_allowed ||
+        !NativePlayer.ownsRemoteOwner(_mediaOwner) ||
         generation == null ||
         generation != _generation ||
         _visibilityResumeGeneration != generation) {
@@ -765,11 +785,12 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
     _loadRequest?.cancel();
     _resetQueue(_offset);
     wantPlay = false;
+    DesktopSystemSession.instance.removeListener(_systemSessionChanged);
     WidgetsBinding.instance.removeObserver(this);
     AudioPreferences.instance.backgroundPlayback.removeListener(
       _preferencesChanged,
     );
-    NativePlayer.clearRemoteCommandHandler();
+    NativePlayer.clearRemoteCommandHandler(owner: _mediaOwner);
     ListeningSession.instance.clear();
     notifyListeners();
     // Do not await the EventChannel cancel: awaiting a platform-stream
@@ -782,7 +803,7 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
       await _engineCall<void>(() => SystemTts.shutdown());
     } catch (_) {}
     await _notificationQueue;
-    await NativePlayer.stopListenForeground();
+    await NativePlayer.stopListenForeground(owner: _mediaOwner);
     dispose();
   }
 }

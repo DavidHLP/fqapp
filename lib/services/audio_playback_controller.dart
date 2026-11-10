@@ -198,12 +198,19 @@ class _AudioPlaybackController extends ChangeNotifier
   bool get _ready =>
       !_closed && !_loading && _error == null && (_player?.isCreated ?? false);
 
+  final String _mediaOwner = NativePlayer.allocateRemoteOwner();
+
   void start() {
     WidgetsBinding.instance.addObserver(this);
+    if (isLinuxDesktop) {
+      DesktopSystemSession.instance.addListener(_systemSessionChanged);
+    }
     // 小米公平运行内存：KILL 广播到达时刷一次听书进度，避免被杀丢进度。
     _unregisterFairMemoryFlush = FairMemoryService.instance
         .registerFlushHandler(_persistProgress);
     NativePlayer.setRemoteCommandHandler(
+      owner: _mediaOwner,
+      onSeek: (ms) => unawaited(_seekTo(Duration(milliseconds: ms))),
       onAction: _handleRemoteAction,
       onBecomingNoisy: _handleBecomingNoisy,
     );
@@ -386,10 +393,11 @@ class _AudioPlaybackController extends ChangeNotifier
     });
   }
 
-  void _syncForeground() {
+  void _syncForeground({bool seeked = false}) {
     if (_closed || _index < 0 || _index >= _chapters.length) return;
-    if (!AudioPreferences.instance.backgroundPlayback.value) {
-      unawaited(NativePlayer.stopListenForeground());
+    if (!isLinuxDesktop &&
+        !AudioPreferences.instance.backgroundPlayback.value) {
+      unawaited(NativePlayer.stopListenForeground(owner: _mediaOwner));
       return;
     }
     final player = _player;
@@ -397,6 +405,8 @@ class _AudioPlaybackController extends ChangeNotifier
         (player?.playing ?? false) && _wantPlay && !_completed && !_loading;
     unawaited(
       NativePlayer.startListenForeground(
+        owner: _mediaOwner,
+        seeked: seeked,
         title: _title,
         episode: _chapters[_index].title,
         // 通知大图 / 媒体卡封面用的是当前书籍封面，不是应用图标。
@@ -415,6 +425,10 @@ class _AudioPlaybackController extends ChangeNotifier
   void _handleRemoteAction(String action) {
     if (_closed) return;
     switch (action) {
+      case 'play':
+        if (!_wantPlay) unawaited(_togglePlayback());
+      case 'pause':
+        unawaited(_pauseForOtherMedia());
       case 'playPause':
         unawaited(_togglePlayback());
       case 'prev':
@@ -454,6 +468,9 @@ class _AudioPlaybackController extends ChangeNotifier
     _syncForeground();
   }
 
+  void _systemSessionChanged() =>
+      didChangeAppLifecycleState(DesktopSystemSession.instance.lifecycle);
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_closed) return;
@@ -463,16 +480,22 @@ class _AudioPlaybackController extends ChangeNotifier
       unawaited(close());
       return;
     }
-    if (isLinuxDesktop && _appActive) unawaited(_resumeAfterVisibility());
+    if (isLinuxDesktop &&
+        !DesktopSystemSession.instance.suspended &&
+        (_appActive || AudioPreferences.instance.backgroundPlayback.value)) {
+      unawaited(_resumeAfterVisibility());
+    }
     if (!_appActive) {
       // 切换到后台或锁屏时立即持久化当前进度，防止后续被系统杀后台导致进度丢失。
       unawaited(_persistProgress());
       // 若后台听书开关关闭，切后台自动暂停播放并移除前台通知。
-      if (!AudioPreferences.instance.backgroundPlayback.value && _wantPlay) {
+      if ((!AudioPreferences.instance.backgroundPlayback.value ||
+              (isLinuxDesktop && DesktopSystemSession.instance.suspended)) &&
+          _wantPlay) {
         final resume = isLinuxDesktop && _wantPlay;
         _visibilityPause = _pauseForOtherMedia();
         if (resume) _visibilityResumeGeneration = _generation;
-        unawaited(NativePlayer.stopListenForeground());
+        unawaited(NativePlayer.stopListenForeground(owner: _mediaOwner));
       }
     }
     _syncListenClock();
@@ -484,7 +507,9 @@ class _AudioPlaybackController extends ChangeNotifier
     if (generation == null) return;
     await _visibilityPause;
     if (_closed ||
-        !_appActive ||
+        (!_appActive && !AudioPreferences.instance.backgroundPlayback.value) ||
+        !NativePlayer.ownsRemoteOwner(_mediaOwner) ||
+        DesktopSystemSession.instance.suspended ||
         _generation != generation ||
         _visibilityResumeGeneration != generation) {
       return;
@@ -1101,7 +1126,7 @@ class _AudioPlaybackController extends ChangeNotifier
   void _fail(Object error, int generation) {
     if (!_current(generation)) return;
     ListeningSession.instance.clear();
-    unawaited(NativePlayer.stopListenForeground());
+    unawaited(NativePlayer.stopListenForeground(owner: _mediaOwner));
     ++_generation;
     _saveTimer?.cancel();
     _listenTime.stop();
@@ -1125,6 +1150,8 @@ class _AudioPlaybackController extends ChangeNotifier
 
   Future<void> _play(NativePlayer player, int generation) async {
     if (!_current(generation, player) || !_wantPlay) return;
+    if (isLinuxDesktop) NativePlayer.claimRemoteOwner(_mediaOwner);
+    if (isLinuxDesktop && DesktopSystemSession.instance.suspended) return;
     if (!_appActive && !AudioPreferences.instance.backgroundPlayback.value) {
       await _pauseForOtherMedia();
       return;
@@ -1206,7 +1233,7 @@ class _AudioPlaybackController extends ChangeNotifier
       _position.value = target;
       _publishReadAlong();
       await _persistProgress();
-      _syncForeground();
+      _syncForeground(seeked: true);
     } catch (error) {
       _fail(error, generation);
     }
@@ -1491,11 +1518,12 @@ class _AudioPlaybackController extends ChangeNotifier
     _sleepTimer?.cancel();
     _sleepTimerTick?.cancel();
     _listenTime.stop();
+    DesktopSystemSession.instance.removeListener(_systemSessionChanged);
     WidgetsBinding.instance.removeObserver(this);
     AudioPreferences.instance.backgroundPlayback.removeListener(
       _preferencesChanged,
     );
-    NativePlayer.clearRemoteCommandHandler();
+    NativePlayer.clearRemoteCommandHandler(owner: _mediaOwner);
     ListeningSession.instance.clear();
     final saved = _persistProgress().catchError((Object _) {});
     final released = _releasePlayer();
@@ -1505,7 +1533,7 @@ class _AudioPlaybackController extends ChangeNotifier
     // session teardown forever if the platform never answers (engine
     // shutdown, or a widget test with no channel mock), which in turn
     // stalls the acquire queue waiting on close().
-    unawaited(NativePlayer.stopListenForeground());
+    unawaited(NativePlayer.stopListenForeground(owner: _mediaOwner));
     await Future.wait([saved, released]);
     // Views/sheets may still be detaching during close; their listenables
     // remain readable until they release this controller for collection.

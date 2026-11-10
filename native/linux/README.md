@@ -79,8 +79,10 @@ boundaries. It never opens a real login, keyring, audio output or system service
   indicates a current login1 owner plus PrepareForSleep subscription.
   `fqapp/desktop_session_events` emits `{type:locked|suspend,value:bool}`.
   Dart must wire these to generation-aware lifecycle handling before acceptance.
-  No lock inference from focus/window geometry. Initial lock state, service
-  restart/reconnection and compositor reliability still require integration work.
+  No lock inference from focus/window geometry. The runner now queries initial
+  LockedHint and watches login1 disappearance/reappearance to resubscribe. Dart
+  combines lock/suspend hints with window visibility and per-media generations.
+  Compositor reliability and full system-bus reconnection remain unverified.
 - `fqapp/native_player`: existing `startListenForeground`/`stopListenForeground`
   maps. One D-Bus name `org.mpris.MediaPlayer2.fqapp`, DO_NOT_QUEUE, no replacement
   of another process. Metadata exports title/episode/duration/track ID, never
@@ -92,11 +94,11 @@ boundaries. It never opens a real login, keyring, audio output or system service
   explicit `play`/`pause` actions; pass `seekSupported:true` only after supporting
   `seekTo` plus `positionMs`. Then Seek/SetPosition route to Dart, bound to current
   track ID and duration. Send `seeked:true` on the resulting metadata update to
-  emit Seeked after actual completion. Current Dart does not support these
-  extensions, so CanSeek remains false by default. `owner` string is echoed in
+  emit Seeked after actual completion. Dart now wires explicit play/pause and
+  seek payloads for timed audio/video; TTS keeps CanSeek=false. `owner` string is echoed in
   callbacks and an owner-bearing stop cannot stop a different owner; merger must
-  allocate unique media generations and reject stale callbacks/updates. Existing
-  maps lack such identity, so full four-media ownership is not yet verified.
+  allocate unique media generations and reject stale callbacks/updates. These
+  owner fences are now integrated; real four-media D-Bus acceptance is pending.
 
 ## Primary API references
 

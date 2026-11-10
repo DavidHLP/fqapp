@@ -464,6 +464,7 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
   bool _paging = false;
   bool _appActive = true;
   bool _resumeOnForeground = false;
+  int? _resumeTransportRevision;
   int _panelAnimation = 0;
   int _interaction = 0;
   double _panelRestFraction = .55;
@@ -616,6 +617,9 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
     _panel.addListener(_panelChanged);
     _listenToPosition();
     WidgetsBinding.instance.addObserver(this);
+    if (isLinuxDesktop) {
+      DesktopSystemSession.instance.addListener(_systemSessionChanged);
+    }
     _appActive = playbackAppIsActive(WidgetsBinding.instance.lifecycleState);
     _lockController =
         AnimationController(
@@ -744,6 +748,7 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
 
   @override
   void dispose() {
+    DesktopSystemSession.instance.removeListener(_systemSessionChanged);
     WidgetsBinding.instance.removeObserver(this);
     _hideTimer?.cancel();
     _doubleTapGuard?.cancel();
@@ -818,6 +823,9 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
     }
   }
 
+  void _systemSessionChanged() =>
+      didChangeAppLifecycleState(DesktopSystemSession.instance.lifecycle);
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // `inactive` 只是瞬态打断（下拉通知栏/控制中心/分屏呼出）：应用仍在
@@ -833,6 +841,7 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
       // 记账会在回到前台时把用户的手动暂停误恢复。移动端的暂停都经会话
       // 中介，现读结果与旧记账一致。
       final resumePlayer = widget.player;
+      _resumeTransportRevision = resumePlayer?.remoteTransportRevision;
       final floating = resumePlayer?.isFloating ?? false;
       _resumeOnForeground =
           !floating &&
@@ -848,7 +857,10 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
       if (!floating) unawaited(_control((player) => player.pause()));
     } else if (active && !_appActive) {
       _appActive = true;
-      if (_resumeOnForeground && !_routeCovered) {
+      if (_resumeOnForeground &&
+          !_routeCovered &&
+          _resumeTransportRevision == widget.player?.remoteTransportRevision &&
+          (widget.player?.ownsDesktopMedia ?? false)) {
         unawaited(_control((player) => player.play()));
       }
       _resumeOnForeground = false;

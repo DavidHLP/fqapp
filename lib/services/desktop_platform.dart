@@ -35,9 +35,10 @@ bool get isDesktopPlatform => isWindowsDesktop || isLinuxDesktop;
 /// On desktop an inactive window is still visible; it simply lacks input focus.
 /// Only hidden/paused/detached windows should defer foreground video playback.
 bool playbackAppIsActive(AppLifecycleState? state) =>
-    state == null ||
-    state == AppLifecycleState.resumed ||
-    (isDesktopPlatform && state == AppLifecycleState.inactive);
+    !(isLinuxDesktop && DesktopSystemSession.instance.blocked) &&
+    (state == null ||
+        state == AppLifecycleState.resumed ||
+        (isDesktopPlatform && state == AppLifecycleState.inactive));
 
 /// 桌面窗口只是失焦时，是否仍算「在前台」。
 ///
@@ -48,12 +49,44 @@ bool playbackAppIsActive(AppLifecycleState? state) =>
 /// 与 [playbackAppIsActive] 是同一件事的两处用法：那个管视频前台播放，这个
 /// 管阅读页的跟随与高亮。平台范围比它宽一点，三个桌面平台都成立。
 bool desktopInactiveStillVisible(AppLifecycleState state) =>
-    state == AppLifecycleState.resumed ||
-    ((!kIsWeb &&
-            (defaultTargetPlatform == TargetPlatform.windows ||
-                defaultTargetPlatform == TargetPlatform.macOS ||
-                defaultTargetPlatform == TargetPlatform.linux)) &&
-        state == AppLifecycleState.inactive);
+    !(isLinuxDesktop && DesktopSystemSession.instance.blocked) &&
+    (state == AppLifecycleState.resumed ||
+        ((!kIsWeb &&
+                (defaultTargetPlatform == TargetPlatform.windows ||
+                    defaultTargetPlatform == TargetPlatform.macOS ||
+                    defaultTargetPlatform == TargetPlatform.linux)) &&
+            state == AppLifecycleState.inactive));
+
+/// logind hints are observable, but compositor lock reliability is unverified.
+class DesktopSystemSession extends ChangeNotifier {
+  static final instance = DesktopSystemSession();
+  bool locked = false;
+  bool suspended = false;
+  bool serviceAvailable = false;
+  bool get blocked => locked || suspended;
+  void accept(dynamic event) {
+    if (event is! Map || event['value'] is! bool) return;
+    final value = event['value'] as bool;
+    switch (event['type']) {
+      case 'locked':
+        if (locked == value) return;
+        locked = value;
+      case 'suspend':
+        if (suspended == value) return;
+        suspended = value;
+      case 'service':
+        serviceAvailable = value;
+        if (!value) AppLog.w('session', 'logind 不可用，无法保证锁屏/挂起通知');
+      default:
+        return;
+    }
+    notifyListeners();
+  }
+
+  AppLifecycleState get lifecycle => blocked
+      ? AppLifecycleState.hidden
+      : WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed;
+}
 
 class DesktopPlatform with WindowListener {
   DesktopPlatform._();
@@ -74,11 +107,14 @@ class DesktopPlatform with WindowListener {
   bool _playerAwake = false;
   String? _readerSession;
   Timer? _readerTimer;
+  StreamSubscription<dynamic>? _sessionEvents;
 
   Stream<dynamic> events(String name) =>
-      isLinuxDesktop && name == 'fqapp/system_tts_events'
-          ? EventChannel(name).receiveBroadcastStream()
-          : (_events[name] ??= StreamController<dynamic>.broadcast()).stream;
+      isLinuxDesktop &&
+          (name == 'fqapp/system_tts_events' ||
+              name == 'fqapp/desktop_session_events')
+      ? EventChannel(name).receiveBroadcastStream()
+      : (_events[name] ??= StreamController<dynamic>.broadcast()).stream;
   void _emit(String name, dynamic event) => _events[name]?.add(event);
 
   Future<void> initialize() async {
@@ -110,9 +146,37 @@ class DesktopPlatform with WindowListener {
       // The native bridge keeps the Android callback contract; no SMTC/SAPI.
       const MethodChannel('fqapp/native_player').setMethodCallHandler(
         (call) => PlatformChannels.notify(
-          'fqapp/native_player', call.method, call.arguments,
+          'fqapp/native_player',
+          call.method,
+          call.arguments,
         ),
       );
+      _sessionEvents = events('fqapp/desktop_session_events').listen(
+        DesktopSystemSession.instance.accept,
+        onError: (Object _) => DesktopSystemSession.instance.accept({
+          'type': 'service',
+          'value': false,
+        }),
+      );
+      try {
+        final capabilities = await const MethodChannel(
+          'fqapp/desktop_session',
+        ).invokeMapMethod<String, dynamic>('capabilities');
+        DesktopSystemSession.instance.accept({
+          'type': 'locked',
+          'value': capabilities?['locked'] ?? false,
+        });
+        AppLog.w(
+          'session',
+          '锁屏可靠性未验收；logind订阅=${capabilities?['suspendEvents']}',
+        );
+      } on PlatformException catch (error) {
+        DesktopSystemSession.instance.accept({
+          'type': 'service',
+          'value': false,
+        });
+        AppLog.w('session', '会话状态查询失败: ${error.code}');
+      }
       return;
     }
     _tts.setCompletionHandler(() {
@@ -214,6 +278,8 @@ class DesktopPlatform with WindowListener {
       _readerAwake = _playerAwake = false;
       await _updateAwake();
       await afterClose?.call();
+      await _sessionEvents?.cancel();
+      _sessionEvents = null;
       await windowManager.destroy();
     } catch (error, stack) {
       _closing = false;
@@ -230,8 +296,11 @@ class DesktopPlatform with WindowListener {
     switch (channel) {
       case 'fqapp/native_player':
         if (isLinuxDesktop &&
-            (method == 'startListenForeground' || method == 'stopListenForeground')) {
-          return MethodChannel(channel).invokeMethod<dynamic>(method, arguments);
+            (method == 'startListenForeground' ||
+                method == 'stopListenForeground')) {
+          return MethodChannel(
+            channel,
+          ).invokeMethod<dynamic>(method, arguments);
         }
         if (method == 'create') {
           final id = _nextId++;
@@ -320,12 +389,16 @@ class DesktopPlatform with WindowListener {
         return _reader(method, args);
       case 'fqapp/system_tts':
         if (isLinuxDesktop) {
-          return MethodChannel(channel).invokeMethod<dynamic>(method, arguments);
+          return MethodChannel(
+            channel,
+          ).invokeMethod<dynamic>(method, arguments);
         }
         return _speech(method, args);
       case 'fqapp/fanqie_account':
         if (isLinuxDesktop) {
-          return MethodChannel(channel).invokeMethod<dynamic>(method, arguments);
+          return MethodChannel(
+            channel,
+          ).invokeMethod<dynamic>(method, arguments);
         }
         if (method == 'login') {
           final context = navigatorKey.currentContext;
@@ -474,7 +547,8 @@ class DesktopPlatform with WindowListener {
   Future<void> _updateAwake() async {
     if (isLinuxDesktop) {
       await const MethodChannel('fqapp/desktop_session').invokeMethod<void>(
-        'setKeepScreenOn', {'on': _readerAwake || _playerAwake},
+        'setKeepScreenOn',
+        {'on': _readerAwake || _playerAwake},
       );
       return;
     }
@@ -656,17 +730,36 @@ String decodeDesktopText(Uint8List bytes) {
   }
 }
 
-
 // glibc provides GB18030 including four-byte characters; malformed input fails.
 String _decodeGb18030(Uint8List bytes) {
   final libc = DynamicLibrary.open('libc.so.6');
-  final open = libc.lookupFunction<
-    Pointer<Void> Function(Pointer<Utf8>, Pointer<Utf8>),
-    Pointer<Void> Function(Pointer<Utf8>, Pointer<Utf8>)>('iconv_open');
-  final convert = libc.lookupFunction<
-    UintPtr Function(Pointer<Void>, Pointer<Pointer<Uint8>>, Pointer<UintPtr>, Pointer<Pointer<Uint8>>, Pointer<UintPtr>),
-    int Function(Pointer<Void>, Pointer<Pointer<Uint8>>, Pointer<UintPtr>, Pointer<Pointer<Uint8>>, Pointer<UintPtr>)>('iconv');
-  final close = libc.lookupFunction<Int32 Function(Pointer<Void>), int Function(Pointer<Void>)>('iconv_close');
+  final open = libc
+      .lookupFunction<
+        Pointer<Void> Function(Pointer<Utf8>, Pointer<Utf8>),
+        Pointer<Void> Function(Pointer<Utf8>, Pointer<Utf8>)
+      >('iconv_open');
+  final convert = libc
+      .lookupFunction<
+        UintPtr Function(
+          Pointer<Void>,
+          Pointer<Pointer<Uint8>>,
+          Pointer<UintPtr>,
+          Pointer<Pointer<Uint8>>,
+          Pointer<UintPtr>,
+        ),
+        int Function(
+          Pointer<Void>,
+          Pointer<Pointer<Uint8>>,
+          Pointer<UintPtr>,
+          Pointer<Pointer<Uint8>>,
+          Pointer<UintPtr>,
+        )
+      >('iconv');
+  final close = libc
+      .lookupFunction<
+        Int32 Function(Pointer<Void>),
+        int Function(Pointer<Void>)
+      >('iconv_close');
   final from = 'GB18030'.toNativeUtf8();
   final to = 'UTF-8'.toNativeUtf8();
   final descriptor = open(to, from);

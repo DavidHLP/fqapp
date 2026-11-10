@@ -9,6 +9,8 @@ import 'package:fqapp/services/chapter_text_formatter.dart';
 import 'package:fqapp/services/listening_session.dart';
 import 'package:fqapp/services/narration_sentence.dart';
 import 'package:fqapp/services/system_tts.dart';
+import 'package:fqapp/services/desktop_platform.dart';
+import 'package:fqapp/services/native_player.dart';
 import 'package:fqapp/services/text_replacement_store.dart';
 import 'package:fqapp/models/text_replacement_rule.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -286,6 +288,54 @@ void main() {
         expect(playback.wantPlay, isFalse);
       } finally {
         await playback.close();
+        await tester.pump();
+      }
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.linux),
+  );
+
+  testWidgets(
+    'Linux suspend reconnects TTS; owner replacement prevents revival',
+    (tester) async {
+      await AudioPreferences.instance.setBackgroundPlayback(true);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      final playback = session();
+      final system = DesktopSystemSession.instance;
+      try {
+        playback.start();
+        await tester.pump();
+        expect(playback.wantPlay, isTrue);
+        system.accept({'type': 'locked', 'value': true});
+        await tester.pump();
+        expect(playback.wantPlay, isTrue);
+        system.accept({'type': 'suspend', 'value': true});
+        await tester.pump();
+        expect(playback.wantPlay, isFalse);
+        final initializations = calls
+            .where((c) => c.method == 'initialize')
+            .length;
+        system.accept({'type': 'locked', 'value': false});
+        await tester.pump();
+        expect(playback.wantPlay, isFalse);
+        system.accept({'type': 'suspend', 'value': false});
+        await tester.pump();
+        expect(playback.wantPlay, isTrue);
+        expect(
+          calls.where((c) => c.method == 'initialize').length,
+          greaterThan(initializations),
+        );
+        system.accept({'type': 'suspend', 'value': true});
+        await tester.pump();
+        final other = NativePlayer.allocateRemoteOwner();
+        NativePlayer.setRemoteCommandHandler(owner: other);
+        system.accept({'type': 'suspend', 'value': false});
+        await tester.pump();
+        expect(playback.wantPlay, isFalse);
+        NativePlayer.clearRemoteCommandHandler(owner: other);
+      } finally {
+        await playback.close();
+        system.accept({'type': 'locked', 'value': false});
+        system.accept({'type': 'suspend', 'value': false});
         await tester.pump();
       }
     },

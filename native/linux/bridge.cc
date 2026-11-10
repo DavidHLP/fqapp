@@ -15,6 +15,8 @@ struct FqappLinuxBridge {
   guint registrations[2] = {0, 0};
   guint suspend_subscription = 0;
   guint lock_subscription = 0;
+  guint logind_watch = 0;
+  bool locked = false;
   bool owner = false;
   FlValue *media = nullptr;
   gint64 updated = 0;
@@ -144,6 +146,7 @@ struct FqappLinuxBridge {
     if (method == "capabilities") {
       g_autoptr(FlValue) v = fl_value_new_map();
       put(v, "lockEvents", fl_value_new_bool(false));
+      put(v, "locked", fl_value_new_bool(locked));
       put(v, "logindLockedHintSubscription",
           fl_value_new_bool(lock_subscription != 0));
       put(v, "suspendEvents", fl_value_new_bool(suspend_subscription != 0));
@@ -334,6 +337,77 @@ static FlEventChannel *events(FlBinaryMessenger *m, const char *name) {
       nullptr, nullptr);
   return e;
 }
+static void reconnect_logind(FqappLinuxBridge *b) {
+  if (!b->system_bus) return;
+  if (b->lock_subscription)
+    g_dbus_connection_signal_unsubscribe(b->system_bus, b->lock_subscription);
+  if (b->suspend_subscription)
+    g_dbus_connection_signal_unsubscribe(b->system_bus, b->suspend_subscription);
+  b->lock_subscription = b->suspend_subscription = 0;
+  g_autoptr(GVariant) logind_owner =
+      b->system_bus
+          ? g_dbus_connection_call_sync(
+                b->system_bus, "org.freedesktop.DBus", "/org/freedesktop/DBus",
+                "org.freedesktop.DBus", "GetNameOwner",
+                g_variant_new("(s)", "org.freedesktop.login1"),
+                G_VARIANT_TYPE("(s)"), G_DBUS_CALL_FLAGS_NONE, 2000, nullptr,
+                nullptr)
+          : nullptr;
+  if (logind_owner) {
+    b->suspend_subscription = g_dbus_connection_signal_subscribe(
+        b->system_bus, "org.freedesktop.login1",
+        "org.freedesktop.login1.Manager", "PrepareForSleep",
+        "/org/freedesktop/login1", nullptr, G_DBUS_SIGNAL_FLAGS_NONE,
+        [](GDBusConnection *, const gchar *, const gchar *, const gchar *,
+           const gchar *, GVariant *p, gpointer data) {
+          gboolean sleeping;
+          g_variant_get(p, "(b)", &sleeping);
+          static_cast<FqappLinuxBridge *>(data)->event("suspend", sleeping);
+        },
+        b, nullptr);
+    g_autoptr(GVariant) r = g_dbus_connection_call_sync(
+        b->system_bus, "org.freedesktop.login1", "/org/freedesktop/login1",
+        "org.freedesktop.login1.Manager", "GetSessionByPID",
+        g_variant_new("(u)", static_cast<guint>(getpid())),
+        G_VARIANT_TYPE("(o)"), G_DBUS_CALL_FLAGS_NONE, 2000, nullptr, nullptr);
+    if (r) {
+      const char *path;
+      g_variant_get(r, "(&o)", &path);
+      g_autoptr(GVariant) initial = g_dbus_connection_call_sync(
+          b->system_bus, "org.freedesktop.login1", path,
+          "org.freedesktop.DBus.Properties", "Get",
+          g_variant_new("(ss)", "org.freedesktop.login1.Session", "LockedHint"),
+          G_VARIANT_TYPE("(v)"), G_DBUS_CALL_FLAGS_NONE, 2000, nullptr, nullptr);
+      if (initial) {
+        GVariant *value;
+        g_variant_get(initial, "(v)", &value);
+        if (g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN)) {
+          b->locked = g_variant_get_boolean(value);
+          b->event("locked", b->locked);
+        }
+        g_variant_unref(value);
+      }
+
+      b->lock_subscription = g_dbus_connection_signal_subscribe(
+          b->system_bus, "org.freedesktop.login1",
+          "org.freedesktop.DBus.Properties", "PropertiesChanged", path,
+          "org.freedesktop.login1.Session", G_DBUS_SIGNAL_FLAGS_NONE,
+          [](GDBusConnection *, const gchar *, const gchar *, const gchar *,
+             const gchar *, GVariant *p, gpointer data) {
+            GVariant *changed = g_variant_get_child_value(p, 1);
+            gboolean locked;
+            if (g_variant_lookup(changed, "LockedHint", "b", &locked))
+              {
+              auto *bridge = static_cast<FqappLinuxBridge *>(data);
+              bridge->locked = locked;
+              bridge->event("locked", locked);
+            }
+            g_variant_unref(changed);
+          },
+          b, nullptr);
+    }
+  }
+}
 static FqappLinuxBridge *instance = nullptr;
 FqappLinuxBridge *fqapp_linux_bridge_new(FlBinaryMessenger *m, GtkWindow *w) {
   if (instance || !m || !w)
@@ -371,50 +445,19 @@ FqappLinuxBridge *fqapp_linux_bridge_new(FlBinaryMessenger *m, GtkWindow *w) {
           b->bus, "/org/mpris/MediaPlayer2", b->info->interfaces[i], &vtable, b,
           nullptr, nullptr);
   b->system_bus = g_bus_get_sync(G_BUS_TYPE_SYSTEM, nullptr, nullptr);
-  g_autoptr(GVariant) logind_owner =
-      b->system_bus
-          ? g_dbus_connection_call_sync(
-                b->system_bus, "org.freedesktop.DBus", "/org/freedesktop/DBus",
-                "org.freedesktop.DBus", "GetNameOwner",
-                g_variant_new("(s)", "org.freedesktop.login1"),
-                G_VARIANT_TYPE("(s)"), G_DBUS_CALL_FLAGS_NONE, 2000, nullptr,
-                nullptr)
-          : nullptr;
-  if (logind_owner) {
-    b->suspend_subscription = g_dbus_connection_signal_subscribe(
-        b->system_bus, "org.freedesktop.login1",
-        "org.freedesktop.login1.Manager", "PrepareForSleep",
-        "/org/freedesktop/login1", nullptr, G_DBUS_SIGNAL_FLAGS_NONE,
-        [](GDBusConnection *, const gchar *, const gchar *, const gchar *,
-           const gchar *, GVariant *p, gpointer data) {
-          gboolean sleeping;
-          g_variant_get(p, "(b)", &sleeping);
-          static_cast<FqappLinuxBridge *>(data)->event("suspend", sleeping);
+  if (b->system_bus)
+    b->logind_watch = g_bus_watch_name_on_connection(
+        b->system_bus, "org.freedesktop.login1", G_BUS_NAME_WATCHER_FLAGS_NONE,
+        [](GDBusConnection *, const gchar *, const gchar *, gpointer data) {
+          auto *bridge = static_cast<FqappLinuxBridge *>(data);
+          reconnect_logind(bridge);
+          bridge->event("service", bridge->suspend_subscription != 0);
         },
-        b, nullptr);
-    g_autoptr(GVariant) r = g_dbus_connection_call_sync(
-        b->system_bus, "org.freedesktop.login1", "/org/freedesktop/login1",
-        "org.freedesktop.login1.Manager", "GetSessionByPID",
-        g_variant_new("(u)", static_cast<guint>(getpid())),
-        G_VARIANT_TYPE("(o)"), G_DBUS_CALL_FLAGS_NONE, 2000, nullptr, nullptr);
-    if (r) {
-      const char *path;
-      g_variant_get(r, "(&o)", &path);
-      b->lock_subscription = g_dbus_connection_signal_subscribe(
-          b->system_bus, "org.freedesktop.login1",
-          "org.freedesktop.DBus.Properties", "PropertiesChanged", path,
-          "org.freedesktop.login1.Session", G_DBUS_SIGNAL_FLAGS_NONE,
-          [](GDBusConnection *, const gchar *, const gchar *, const gchar *,
-             const gchar *, GVariant *p, gpointer data) {
-            GVariant *changed = g_variant_get_child_value(p, 1);
-            gboolean locked;
-            if (g_variant_lookup(changed, "LockedHint", "b", &locked))
-              static_cast<FqappLinuxBridge *>(data)->event("locked", locked);
-            g_variant_unref(changed);
-          },
-          b, nullptr);
-    }
-  }
+        [](GDBusConnection *, const gchar *, gpointer data) {
+          auto *bridge = static_cast<FqappLinuxBridge *>(data);
+          reconnect_logind(bridge);
+          bridge->event("service", false);
+        }, b, nullptr);
   instance = b;
   return b;
 }
@@ -424,6 +467,7 @@ void fqapp_linux_bridge_free(FqappLinuxBridge *b) {
   for (auto *c : {b->tts_channel, b->login_channel, b->session_channel,
                   b->player_channel})
     fl_method_channel_set_method_call_handler(c, nullptr, nullptr, nullptr);
+  if (b->logind_watch) g_bus_unwatch_name(b->logind_watch);
   b->login.reset();
   b->tts.reset();
   b->release();

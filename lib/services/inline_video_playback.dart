@@ -450,6 +450,8 @@ class InlineVideoPlayback {
       await release;
       if (!_current(generation)) return;
       final player = candidate = playerFactory?.call() ?? NativePlayer();
+      player.mediaTitle = series.title;
+      player.mediaEpisode = episodes[index].title;
       _player = player;
       await player.create(source.url, source.keyHex, startMs: startMs);
       if (!_current(generation, player)) {
@@ -550,6 +552,8 @@ class InlineVideoPlayback {
       await release;
       if (!_current(generation)) return;
       final fresh = candidate = playerFactory?.call() ?? NativePlayer();
+      fresh.mediaTitle = _active?.title ?? '视频';
+      fresh.mediaEpisode = activeEpisode?.title ?? '';
       _player = fresh;
       await fresh.create(variant.url, variant.keyHex);
       if (!_current(generation, fresh)) {

@@ -1,4 +1,5 @@
 #include "my_application.h"
+#include "bridge.h"
 
 #include <flutter_linux/flutter_linux.h>
 #ifdef GDK_WINDOWING_X11
@@ -10,6 +11,7 @@
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
+  FqappLinuxBridge* bridge;
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
@@ -59,6 +61,12 @@ static void my_application_activate(GApplication* application) {
       project, self->dart_entrypoint_arguments);
 
   FlView* view = fl_view_new(project);
+  self->bridge = fqapp_linux_bridge_new(
+      fl_engine_get_binary_messenger(fl_view_get_engine(view)), window);
+  g_signal_connect_swapped(window, "destroy", G_CALLBACK(+[](MyApplication* app) {
+    fqapp_linux_bridge_free(app->bridge);
+    app->bridge = nullptr;
+  }), self);
   GdkRGBA background_color;
   // Background defaults to black, override it here if necessary, e.g. #00000000
   // for transparent.
