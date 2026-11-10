@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'backend_transport.dart';
 import 'lan_share_preferences.dart';
+import 'linux_profile_ownership.dart';
 
 /// Manages the local backend core.
 ///
@@ -132,6 +133,7 @@ class BackendService {
 
   /// Deploys the runtime files the Rust core reads (config + filters).
   Future<void> _deploy() async {
+    if (Platform.isLinux) LinuxProfileOwnership.requireCurrent();
     final dir = await _backendDir();
 
     final configDir = Directory('${dir.path}/config');
@@ -152,7 +154,9 @@ class BackendService {
     // Seed the device pool from the example on first launch (the core
     // registers a real device on demand and persists it here).
     final poolFile = File('${dir.path}/config/device_pool.json');
-    if (!await poolFile.exists()) {
+    // Linux must confirm its key while the runtime pool is still absent.
+    // Rust creates an empty pool on demand; existing pools stay fail-closed.
+    if (!Platform.isLinux && !await poolFile.exists()) {
       await _copyAsset('assets/config/device_pool.example.json', poolFile);
     }
 

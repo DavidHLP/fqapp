@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/services.dart';
+import 'package:fqapp/services/linux_profile_ownership.dart';
 import 'package:fqapp/services/backend_transport.dart';
 
 /// The bridge runtime is a process-wide one-shot: a successful load is reused,
@@ -10,6 +12,57 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   tearDown(RustBackendTransport.resetRuntimeForTest);
+
+  test(
+    'existing pool with no key blocks transport without creating a key',
+    () async {
+      final root = await Directory.systemTemp.createTemp('fqapp-no-pool-key-');
+      final owner = await LinuxProfileOwnership.acquire(
+        root,
+        keyNamespaceDirectory: Directory('${root.path}/keys'),
+      );
+      final pool = File('${root.path}/device_pool.json');
+      final bytes = [1, 2, 3, 4];
+      await pool.writeAsBytes(bytes);
+      var writes = 0;
+      const channel = MethodChannel(
+        'plugins.it_nomads.com/flutter_secure_storage',
+      );
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'write') writes++;
+        return null;
+      });
+      RustBackendTransport.runtimeInitializer = () async {};
+      final transport = RustBackendTransport();
+      try {
+        await expectLater(
+          transport.start(
+            configPath: 'unused',
+            poolPath: pool.path,
+            filterPath: 'unused',
+            runtimeDir: root.path,
+          ),
+          throwsA(
+            isA<StateError>().having(
+              (error) => error.message,
+              'message',
+              contains('设备池密钥不可用'),
+            ),
+          ),
+        );
+        expect(writes, 0);
+        expect(await pool.readAsBytes(), bytes);
+      } finally {
+        await transport.close();
+        await owner.close();
+        messenger.setMockMethodCallHandler(channel, null);
+        await root.delete(recursive: true);
+      }
+    },
+    skip: !Platform.isLinux,
+  );
 
   test('Linux refuses runtime startup before acquiring ownership', () async {
     var calls = 0;

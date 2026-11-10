@@ -351,6 +351,10 @@ void main() {
       () async {
     mockPayload =
         '{"code":0,"data":{"search_tabs":[{"title":"书籍","data":[]}]}}';
+    // This caller fixture needs registered devices; production Linux starts empty.
+    final pool = File('${root.path}/backend/config/device_pool.json');
+    await pool.parent.create(recursive: true);
+    await pool.writeAsString(pooledDevicesJson());
     final backend = BackendService(
       assets: _HostAssets(pooledDevicesJson()),
       supportDirectory: () async => root,

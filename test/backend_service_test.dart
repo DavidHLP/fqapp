@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -6,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fqapp/services/backend_service.dart';
 import 'package:fqapp/services/backend_transport.dart';
+import 'package:fqapp/services/linux_profile_ownership.dart';
 
 /// Lifecycle tests for the Rust-backed [BackendService].
 ///
@@ -37,6 +39,7 @@ void main() {
 
   setUp(() async {
     directory = await Directory.systemTemp.createTemp('fqapp_backend_test_');
+    await syntheticProfile(directory);
   });
 
   tearDown(() async {
@@ -233,6 +236,47 @@ void main() {
     },
   );
 
+  test('deployment refuses writes before Linux ownership', () async {
+    await LinuxProfileOwnership.current!.close();
+    final backend = createBackend();
+    await expectLater(backend.start(), throwsStateError);
+    expect(Directory('${directory.path}/backend').existsSync(), isFalse);
+  }, skip: !Platform.isLinux);
+
+  test('fresh copy failure leaves pool absent and permits retry', () async {
+    final assets = _BackendAssets()..failLoad = true;
+    final backend = createBackend(assets: assets);
+    await expectLater(backend.start(), throwsStateError);
+    final pool = File('${directory.path}/backend/config/device_pool.json');
+    expect(pool.existsSync(), isFalse);
+    assets.failLoad = false;
+    await backend.start();
+    expect(backend.isRunning, isTrue);
+    expect(pool.existsSync(), !Platform.isLinux);
+  });
+
+  test('fresh Linux deployment leaves pool absent for key creation', () async {
+    await createBackend().start();
+    expect(
+      File('${directory.path}/backend/config/device_pool.json').existsSync(),
+      !Platform.isLinux,
+    );
+  });
+
+  test('failed asset copy preserves pool and retries deployment', () async {
+    final pool = File('${directory.path}/backend/config/device_pool.json');
+    await pool.parent.create(recursive: true);
+    await pool.writeAsString('existing encrypted pool bytes');
+    final assets = _BackendAssets()..failLoad = true;
+    final backend = createBackend(assets: assets);
+    await expectLater(backend.start(), throwsStateError);
+    expect(await pool.readAsString(), 'existing encrypted pool bytes');
+    assets.failLoad = false;
+    await backend.start();
+    expect(backend.isRunning, isTrue);
+    expect(await pool.readAsString(), 'existing encrypted pool bytes');
+  });
+
   test('the core is initialized with the deployed runtime paths', () async {
     final transport = _FakeRustTransport();
     final backend = createBackend(transport: transport);
@@ -354,6 +398,7 @@ class _FakeRustTransport extends RustBackendTransport {
 class _BackendAssets extends CachingAssetBundle {
   _BackendAssets({this.blockFirstLoad = false, this.configPort = 18921});
 
+  bool failLoad = false;
   final bool blockFirstLoad;
 
   /// Port written into the deployed `config.json`; null omits the key.
@@ -367,6 +412,7 @@ class _BackendAssets extends CachingAssetBundle {
 
   @override
   Future<ByteData> load(String key) async {
+    if (failLoad) throw StateError('asset copy failed');
     if (!loadEntered.isCompleted) {
       loadEntered.complete();
       if (blockFirstLoad) await allowLoad.future;
