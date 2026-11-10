@@ -19,13 +19,19 @@ No install script, service, keyring read, app startup or data cleanup hook exist
   needed, URL opener via xdg-utils. Provider/backend selection belongs to the
   user; installation never replaces the desktop's keyring. Service availability
   is separate from ELF resolution and cannot be proven by packaging.
-- Pending native bridge integration: GTK3/WebKitGTK 4.1 (`webkit2gtk-4.1`),
-  SSIP client/server (`libspeechd`, `speech-dispatcher`), and a Chinese voice.
-  The build-foundation bundle does not yet contain this bridge, so these are
-  not falsely declared current runtime dependencies. When integrating its
-  CMake/implementation, add its actual NEEDED/dlopen/SSIP dependencies to
-  `depends`, rebuild the report and verify Chinese speech. CI prepares these
-  libraries so the merged bridge can build; this does not certify integration.
+- Integrated native bridge: `webkit2gtk-4.1` supplies WebKitGTK 4.1 and its
+  subprocess/resources; `libspeechd` supplies libspeechd.so.2 and pkg-config
+  speech-dispatcher; `speech-dispatcher` supplies the SSIP daemon. All are hard
+  dependencies. `espeak-ng` provides the baseline cmn voice (select/configure it
+  in Speech Dispatcher); presence alone does not establish audible quality.
+  `xdg-desktop-portal` is required, but its desktop backend and Secret Service
+  provider remain desktop choices, never replaced by install hooks.
+
+Official Arch snapshot 2026-11-09 was checked: webkit2gtk-4.1 2.54.2-1,
+libspeechd/speech-dispatcher 0.12.1-3, espeak-ng 1.52.0-1, rust 1:1.99.1-1.
+The 2026-11-10 core snapshot returned 404 at validation; CI uses 2026-11-09.
+The pinned OCI image digest resolves in Docker Hub. This is metadata verification,
+not a successful remote CI run or clean installation.
 
 Redistribution inventory: root GPL-3.0 text; Rust/FRB and all locked Cargo/pub
 sources; Flutter/Dart/engine notices (copied from exact SDK); Flutter-generated
@@ -45,3 +51,6 @@ Official references:
 - https://archlinux.org/packages/extra/x86_64/mpv/
 - https://archlinux.org/packages/extra/x86_64/webkit2gtk-4.1/
 - https://archlinux.org/packages/extra/x86_64/speech-dispatcher/
+
+- https://archlinux.org/packages/extra/x86_64/libspeechd/
+- https://archlinux.org/packages/extra/x86_64/espeak-ng/

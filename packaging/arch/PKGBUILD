@@ -9,9 +9,10 @@ license=('GPL-3.0-only')
 depends=('glibc' 'libgcc' 'libstdc++' 'gtk3' 'glib2' 'pango' 'cairo'
          'gdk-pixbuf2' 'at-spi2-core' 'harfbuzz' 'zlib' 'fontconfig'
          'libsecret' 'mpv' 'libepoxy' 'libglvnd' 'libx11' 'dbus'
-         'xdg-utils' 'hicolor-icon-theme' 'java-runtime>=17')
+         'xdg-utils' 'hicolor-icon-theme' 'java-runtime>=17'
+         'webkit2gtk-4.1' 'libspeechd' 'speech-dispatcher' 'espeak-ng'
+         'xdg-desktop-portal')
 optdepends=('org.freedesktop.secrets: encrypted storage (choose your desktop provider)'
-            'xdg-desktop-portal: desktop portal services; also select a desktop backend'
             'noto-fonts-cjk: additional Chinese desktop fonts')
 makedepends=('clang' 'cmake' 'ninja' 'pkgconf' 'rust' 'python' 'patchelf'
              'desktop-file-utils')
@@ -29,7 +30,7 @@ build() {
   # Fetch pinned dependencies separately; building the archive is offline.
   flutter pub get --offline --enforce-lockfile
   export CARGO_NET_OFFLINE=true
-  flutter build linux --release --no-pub
+  bash packaging/arch/build_release.sh
   python packaging/arch/prepare_bundle.py build/linux/x64/release/bundle
   mkdir -p build/linux/x64/release/bundle/licenses
   cp LICENSE build/linux/x64/release/bundle/licenses/

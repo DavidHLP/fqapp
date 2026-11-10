@@ -38,9 +38,9 @@ jobs:
     steps:
       - name: Prepare isolated Arch snapshot (never the host)
         run: |
-          printf 'Server = https://archive.archlinux.org/repos/2026/11/10/$repo/os/$arch\n' > /etc/pacman.d/mirrorlist
+          printf 'Server = https://archive.archlinux.org/repos/2026/11/09/$repo/os/$arch\n' > /etc/pacman.d/mirrorlist
           pacman -Syyuu --noconfirm
-          pacman -S --needed --noconfirm base-devel git clang cmake ninja pkgconf gtk3 libsecret mpv libepoxy libglvnd libx11 dbus xdg-utils hicolor-icon-theme jre21-openjdk rust python nodejs ffmpeg patchelf desktop-file-utils zstd unzip xz curl webkit2gtk-4.1 speech-dispatcher libspeechd
+          pacman -S --needed --noconfirm base-devel git clang cmake ninja pkgconf gtk3 libsecret mpv libepoxy libglvnd libx11 dbus xdg-utils hicolor-icon-theme jre21-openjdk rust python nodejs ffmpeg patchelf desktop-file-utils zstd unzip xz curl webkit2gtk-4.1 speech-dispatcher libspeechd espeak-ng xdg-desktop-portal
           useradd -m builder
           rustc --version | grep -E '^rustc 1\.99\.1 '
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -58,7 +58,7 @@ jobs:
             /home/builder/.pub-cache
             /home/builder/.cargo/registry
             /home/builder/.cargo/git
-          key: arch-20261110-x64-flutter3.47.9-rust1.99.1-frb2.13-${{ hashFiles('pubspec.lock', 'rust/Cargo.lock') }}
+          key: arch-20261109-x64-flutter3.47.9-rust1.99.1-frb2.13-${{ hashFiles('pubspec.lock', 'rust/Cargo.lock') }}
       - name: Resolve locked inputs and run automatic gates
         shell: bash
         run: |
@@ -88,7 +88,7 @@ jobs:
           flutter test --no-pub
           node --test test/verify_audio_cenc_test.cjs
           python scripts/verify_windows_media.py
-          flutter build linux --release --no-pub
+          bash packaging/arch/build_release.sh
           nm -D build/linux/x64/release/bundle/lib/libfqapi_core.so > build/validation/linux/core-symbols.txt
           for symbol in fq_desktop_media_open fq_desktop_media_close fq_desktop_media_free; do
             grep -q " $symbol$" build/validation/linux/core-symbols.txt
@@ -108,6 +108,9 @@ jobs:
             build/arch-package/fqapp-bundle.tar.zst
             build/arch-package/*report.txt
             build/arch-package/build-manifest.txt
+            build/arch-package/fqapp-source.tar.zst
+            build/arch-package/source-PKGBUILD
+            build/arch-package/license-inventory.txt
             build/validation/linux/**
             build/validation/linux-media/*.json
           if-no-files-found: error

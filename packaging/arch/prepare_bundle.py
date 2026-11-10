@@ -17,7 +17,7 @@ for path in bundle.rglob('*'):
         if stream.read(4) != b'\x7fELF':
             continue
     if b'/home/' in path.read_bytes():
-        print('DRAFT LIMITATION: embedded home/build paths remain; rebuild before release')
+        print(f'DIAGNOSTIC PATH LIMITATION: {path.relative_to(bundle)} contains /home/ strings')
     header = subprocess.check_output(['readelf', '-h', path], text=True)
     if 'Advanced Micro Devices X86-64' not in header:
         raise SystemExit(f'Not an x86_64 ELF: {path}')
@@ -26,6 +26,7 @@ for path in bundle.rglob('*'):
         rpath += ':/usr/lib/jvm/default-runtime/lib/server'
     subprocess.run(['patchelf', '--set-rpath', rpath, path], check=True)
     dynamic = subprocess.check_output(['readelf', '-d', path], text=True)
+    assert '/tmp/' not in dynamic and '/home/' not in dynamic, dynamic
     print(path.relative_to(bundle))
     print('\n'.join(line for line in dynamic.splitlines() if 'NEEDED' in line or 'RUNPATH' in line))
     closure = subprocess.check_output(['ldd', path], text=True)

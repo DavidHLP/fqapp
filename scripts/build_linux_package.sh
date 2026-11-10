@@ -9,12 +9,20 @@ root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 bundle=$(realpath -e -- "$1")
 output=$(realpath -m -- "$2")
 revision=$(git -C "$root" rev-parse --verify --end-of-options "$3^{commit}")
+[[ $revision == "$(git -C "$root" rev-parse HEAD)" ]]
+git -C "$root" diff --quiet HEAD --
+[[ $(cat "$bundle/source-commit.txt") == "$revision" ]]
 [[ $bundle != / && $output != / && ! -e $output ]]
 case "$output/" in "$bundle/"*) echo 'Output must be outside bundle' >&2; exit 2;; esac
 for tool in makepkg patchelf python tar zstd readelf ldd desktop-file-validate; do
   command -v "$tool" >/dev/null
 done
 mkdir -m755 -- "$output"
+# Packaging has no access to the caller's profile or session services.
+export HOME="$output/home" XDG_CONFIG_HOME="$output/home/config" XDG_CACHE_HOME="$output/home/cache"
+export GNUPGHOME="$output/home/gnupg" DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent
+mkdir -p -m700 "$HOME" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$GNUPGHOME"
+git -C "$root" archive --format=tar --prefix=fqapp/ "$revision" | zstd -q -o "$output/fqapp-source.tar.zst"
 stage="$output/payload/fqapp"
 mkdir -p -- "$stage/build/linux/x64/release/bundle" "$stage/packaging"
 # Reject escaping links before copying or modifying anything from the bundle.
@@ -57,9 +65,17 @@ recipe = re.sub(r'makedepends=\([\s\S]*?\)\n', '', recipe)
 recipe = recipe.replace('0000000000000000000000000000000000000000000000000000000000000000', hashlib.file_digest(
     (output / 'fqapp-bundle.tar.zst').open('rb'), 'sha256').hexdigest())
 (output / 'PKGBUILD').write_text(recipe)
+source_recipe = (root / 'packaging/arch/PKGBUILD').read_text()
+source_recipe = source_recipe.replace('0000000000000000000000000000000000000000000000000000000000000000', hashlib.file_digest(
+    (output / 'fqapp-source.tar.zst').open('rb'), 'sha256').hexdigest())
+(output / 'source-PKGBUILD').write_text(source_recipe)
+files = subprocess.check_output(['git', '-C', str(root), 'ls-tree', '-r', '--name-only', sys.argv[3]], text=True).splitlines()
+root_notices = [f for f in files if any(w in f.lower() for w in ('license', 'notice', 'copying', 'ofl'))]
+(output / 'license-inventory.txt').write_text('Corresponding repository source: ' + sys.argv[3] + '\nAvailable notice paths (not a completed rights audit):\n' + '\n'.join(root_notices) + '\nLocked external source versions: pubspec.lock, rust/Cargo.lock; engine/SDK versions: build-manifest.txt.\nSystem package sources/notices remain supplied by Arch; see DEPENDENCIES.md.\n')
 PY
 (cd -- "$output" && makepkg --nodeps --noconfirm)
 # --nodeps permits packaging on a prepared host without installing any packages.
 # It is NOT proof of clean-machine dependency satisfaction.
 (cd -- "$output" && makepkg --printsrcinfo > .SRCINFO)
+(cd -- "$output" && makepkg -p source-PKGBUILD --verifysource --nodeps --noconfirm)
 printf 'Draft package and evidence: %s\n' "$output"
