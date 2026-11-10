@@ -1,0 +1,21 @@
+packaging/arch/PKGBUILD
+  s_3ca1763f90b2a8::t_a4286223008b0d 27
+scripts/build_linux_package.sh
+  s_3ca1763f90b2a8::t_0990265ebf23f1 39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d35efd615bb3de23b221e6f812a951de9ae47596",
+  "prompts": {},
+  "sessions": {
+    "s_3ca1763f90b2a8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c556-5b16-7c90-b92e-dc4d3cade3c4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
