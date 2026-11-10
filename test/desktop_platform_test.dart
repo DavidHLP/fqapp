@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fqapp/services/desktop_platform.dart';
+import 'package:fqapp/services/desktop_media.dart';
 import 'package:fqapp/services/platform_channel.dart';
 import 'package:fqapp/models/media_item.dart';
 import 'package:fqapp/widgets/desktop_chapter_sidebar.dart';
@@ -15,6 +16,26 @@ void main() {
     PlatformChannels.invoke = null;
     PlatformChannels.events = null;
   });
+
+  test(
+    'Linux core path is shared and independent of the working directory',
+    () {
+      final original = Directory.current;
+      final elsewhere = Directory.systemTemp.createTempSync('fqapp-core-path-');
+      try {
+        final expected =
+            '${File(Platform.resolvedExecutable).parent.path}'
+            '/lib/libfqapi_core.so';
+        expect(desktopCoreLibraryPath(), expected);
+        Directory.current = elsewhere;
+        expect(desktopCoreLibraryPath(), expected);
+      } finally {
+        Directory.current = original;
+        elsewhere.deleteSync();
+      }
+    },
+    skip: !Platform.isLinux,
+  );
 
   test('platform adapters preserve typed bytes and errors', () async {
     final bytes = Uint8List.fromList([1, 2, 3]);

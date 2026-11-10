@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
+
 import 'package:ffi/ffi.dart';
 
 import 'app_log.dart';
@@ -12,6 +13,9 @@ typedef _FreeNative = Void Function(Pointer<Utf8>);
 typedef _Free = void Function(Pointer<Utf8>);
 
 String desktopCoreLibraryPath() {
+  if (Platform.isLinux) {
+    return '${File(Platform.resolvedExecutable).parent.path}/lib/libfqapi_core.so';
+  }
   final bundled = File(
     '${File(Platform.resolvedExecutable).parent.path}/fqapi_core.dll',
   );

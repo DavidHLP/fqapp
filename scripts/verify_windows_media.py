@@ -1,4 +1,4 @@
-"""Exercise the actual Windows DLL + C decoder + loopback Range transport.
+"""Exercise the actual desktop library + C decoder + loopback Range transport.
 
 Requires FFmpeg on PATH. No upstream account/content or third-party Python deps.
 """
@@ -10,15 +10,19 @@ import json
 import pathlib
 import random
 import subprocess
+import sys
 import threading
 import time
 import urllib.parse
 import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / 'build' / 'validation' / 'windows-media'
+OUTPUT = ROOT / 'build' / 'validation' / (
+    'linux-media' if sys.platform == 'linux' else 'windows-media'
+)
 OUTPUT.mkdir(parents=True, exist_ok=True)
-LIB = ctypes.CDLL(str(ROOT / 'rust/target/release/fqapi_core.dll'))
+CORE_NAME = 'libfqapi_core.so' if sys.platform == 'linux' else 'fqapi_core.dll'
+LIB = ctypes.CDLL(str(ROOT / 'rust/target/release' / CORE_NAME))
 LIB.fq_desktop_media_open.argtypes = [ctypes.c_char_p]
 LIB.fq_desktop_media_open.restype = ctypes.c_void_p
 LIB.fq_desktop_media_free.argtypes = [ctypes.c_void_p]
