@@ -1,0 +1,25 @@
+lib/services/backend_service.dart
+  s_b060a7f9ce302b::t_79fafa1aa3796a 11,136,157-159
+test/backend_runtime_init_retry_test.dart
+  s_b060a7f9ce302b::t_976debc578bd98 4-5,16-66
+test/backend_service_test.dart
+  s_b060a7f9ce302b::t_b1bb091ebccc1d 1,10,42,239-279,401,415
+test/rust_host_integration_test.dart
+  s_b060a7f9ce302b::t_d028a1d0bd9ffd 354-357
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ca3c6b9ee3198216d00c2b470ba3d0e06fb09f2a",
+  "prompts": {},
+  "sessions": {
+    "s_b060a7f9ce302b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c593-0327-7a80-b83b-a00696930cfc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
