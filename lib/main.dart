@@ -131,6 +131,12 @@ Future<void> _prepareRuntime() async {
   RustLogSource.reader = BackendService.instance.readRustLog;
   if (isDesktopPlatform) {
     DesktopPlatform.instance.beforeClose = () async {
+      // Recovery owns Hive and the profile lock until its physical work ends.
+      try {
+        await LinuxLibraryRecovery.activeRecovery;
+      } catch (_) {
+        // Failed recovery retains its journal; closing permits cold-start retry.
+      }
       try {
         await _localDataStartup;
       } catch (_) {}

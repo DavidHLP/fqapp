@@ -19,6 +19,8 @@ class LinuxLibraryRestoreBlocked implements Exception {
 /// The caller must stop backend/download writers and close Hive first, while
 /// retaining the existing profile owner. Never call this from an active reader.
 class LinuxLibraryRecovery {
+  static Future<void>? _activeRecovery;
+  static Future<void>? get activeRecovery => _activeRecovery;
   static bool _merging = false;
   static bool get isMerging => _merging;
   static File _pending(LinuxProfileOwnership owner) =>
@@ -56,6 +58,16 @@ class LinuxLibraryRecovery {
   /// Called only in a fresh process, before any business store or writer starts.
   /// Injection points are callbacks owned by tests, never environment switches.
   static Future<void> resume({
+    required LinuxProfileOwnership owner,
+    required Future<void> Function(Uint8List bytes) merge,
+    Future<void> Function(String boundary)? boundary,
+  }) {
+    final recovery = _resume(owner: owner, merge: merge, boundary: boundary);
+    _activeRecovery = recovery;
+    return recovery.whenComplete(() => _activeRecovery = null);
+  }
+
+  static Future<void> _resume({
     required LinuxProfileOwnership owner,
     required Future<void> Function(Uint8List bytes) merge,
     Future<void> Function(String boundary)? boundary,

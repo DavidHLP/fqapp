@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -99,6 +100,50 @@ void main() {
       expect(File('${operation.path}/backup.json').readAsBytesSync(), bytes);
     },
   );
+
+  test('close drain waits for recovery before releasing ownership', () async {
+    final profile = Directory('${root.path}/profile');
+    final owner = await LinuxProfileOwnership.acquire(
+      profile,
+      keyNamespaceDirectory: Directory('${root.path}/keys'),
+    );
+    LinuxLibraryRecovery.schedule(owner, Uint8List.fromList([123, 125]));
+    final entered = Completer<void>();
+    final finish = Completer<void>();
+    final recovery = LinuxLibraryRecovery.resume(
+      owner: owner,
+      merge: (_) async {
+        entered.complete();
+        await finish.future;
+      },
+    );
+    await entered.future;
+    var released = false;
+    final closing = () async {
+      await LinuxLibraryRecovery.activeRecovery;
+      await owner.close();
+      released = true;
+    }();
+    await Future<void>.delayed(Duration.zero);
+    expect(released, isFalse);
+    owner.requireHeld();
+    expect(
+      jsonDecode(
+        File('${profile.path}/.fqapp-restore.json').readAsStringSync(),
+      )['state'],
+      'merging',
+    );
+    finish.complete();
+    await recovery;
+    await closing;
+    expect(released, isTrue);
+    expect(
+      jsonDecode(
+        File('${profile.path}/.fqapp-restore.json').readAsStringSync(),
+      )['state'],
+      'complete',
+    );
+  });
 
   String dartExecutable() => Platform.resolvedExecutable.contains('/bin/cache/')
       ? '${Platform.resolvedExecutable.split('/bin/cache/').first}/bin/cache/dart-sdk/bin/dart'
