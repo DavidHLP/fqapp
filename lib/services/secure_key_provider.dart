@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_ce/hive.dart';
+
+import 'linux_profile_ownership.dart';
 
 /// Minimal read/write surface over the platform secure store, kept as an
 /// interface so tests can substitute an in-memory fake instead of driving a
@@ -60,97 +64,156 @@ class InMemorySecureKeyStorage implements SecureKeyStorage {
 ///   infrastructure but not the key material: compromising one store must not
 ///   open the other.
 ///
-/// A missing entry is created once (random 256-bit via
-/// `Hive.generateSecureKey`) and persisted; a present-but-malformed entry is
-/// treated as a lost key and replaced, which makes the boxes encrypted under
-/// the old key unreadable — `EncryptedHive` then treats those boxes as empty
-/// rather than falling back to plaintext. When secure storage itself throws
-/// (no platform channel, Keystore failure), `null` is returned and callers
-/// degrade per their own policy instead of failing startup.
+/// Linux production calls require profile ownership and durable confirmation.
+/// A timeout bounds the caller only; the underlying operation remains owned.
 class SecureKeyProvider {
   SecureKeyProvider({
     SecureKeyStorage? storage,
     this.storageTimeout = const Duration(seconds: 10),
-  }) : _storage = storage ?? const FlutterSecureKeyStorage();
+    bool? strictLinux,
+    this.ownership,
+  }) : _storage = storage ?? const FlutterSecureKeyStorage(),
+       strictLinux =
+           strictLinux ??
+           (Platform.isLinux &&
+               (storage == null || storage is FlutterSecureKeyStorage));
 
   static final SecureKeyProvider instance = SecureKeyProvider();
-
-  /// Hive box encryption key (base64 of 32 random bytes).
   static const hiveBoxKeyName = 'fqapp_hive_encryption_key_v1';
-
-  /// Rust device-pool file encryption key (base64 of 32 random bytes).
   static const devicePoolKeyName = 'fqapp_device_pool_key_v1';
-
-  /// How long a single secure-storage read/write may take before it is
-  /// treated as unavailable. The platform channel normally answers in
-  /// milliseconds; without a bound, a wedged Keystore — or, in widget tests,
-  /// an unmocked channel whose Future never resolves — would hang startup
-  /// forever instead of letting callers degrade.
   final Duration storageTimeout;
-
-  /// Cooldown after a failed key load: lookups within one startup return the
-  /// cached failure instead of each waiting out the full storage timeout.
-  /// A later retry (e.g. the bootstrap retry button after the cooldown)
-  /// attempts the platform channel again.
-  static const _failureCooldown = Duration(seconds: 30);
-
   final SecureKeyStorage _storage;
-  final Map<String, Uint8List> _cache = {};
-  final Map<String, Future<Uint8List?>> _pending = {};
-  final Map<String, DateTime> _failedAt = {};
+  final bool strictLinux;
+  final LinuxProfileOwnership? ownership;
+  static final Object _productionScope = Object();
+  static final Map<Object, Map<String, _KeyOperation>> _operations = {};
+  Object get _scope =>
+      _storage is FlutterSecureKeyStorage ? _productionScope : _storage;
 
-  Future<Uint8List?> getOrCreateKey({String name = hiveBoxKeyName}) {
-    final cached = _cache[name];
-    if (cached != null) return Future.value(cached);
-    final failedAt = _failedAt[name];
-    if (failedAt != null &&
-        DateTime.now().difference(failedAt) < _failureCooldown) {
-      return Future.value(null);
+  Future<Uint8List?> getOrCreateKey({
+    String name = hiveBoxKeyName,
+    bool allowCreate = true,
+  }) {
+    LinuxProfileOwnership? owner;
+    if (strictLinux) {
+      owner = ownership ?? LinuxProfileOwnership.requireCurrent();
+      owner.requireHeld();
     }
-    return _pending[name] ??= _loadOrCreate(name).then((key) {
-      _pending.remove(name);
-      return key;
-    });
-  }
-
-  Future<Uint8List?> _loadOrCreate(String name) async {
-    try {
-      final stored = await _storage.read(name).timeout(storageTimeout);
-      if (stored != null) {
-        try {
-          final decoded = base64Decode(stored);
-          if (decoded.length == 32) {
-            final bytes = Uint8List.fromList(decoded);
-            _cache[name] = bytes;
-            return bytes;
-          }
-        } catch (_) {
-          // Malformed entry: fall through and replace it (key lost).
+    final operations = _operations.putIfAbsent(owner ?? _scope, () => {});
+    final marker = owner?.pendingMarker(name);
+    final existing = operations[name];
+    if (existing != null) {
+      final failure = existing.failedAt;
+      if (failure == null ||
+          DateTime.now().difference(failure) < const Duration(seconds: 30)) {
+        return existing.result;
+      }
+      operations.remove(name);
+    }
+    final operation = _KeyOperation();
+    operations[name] = operation;
+    final underlying = _loadOrCreate(name, owner, allowCreate);
+    operation.settled = underlying.then((key) {
+      operation.result = Future.value(key);
+      // A completed read failure is retryable; unresolved writes retain marker.
+      if (key == null && !(marker?.existsSync() ?? false)) {
+        if (owner != null) {
+          operations.remove(name);
+        } else {
+          operation.failedAt = DateTime.now();
         }
       }
+      return key;
+    });
+    owner?.trackKeyOperation(operation.settled);
+    operation.result = operation.settled.timeout(
+      storageTimeout,
+      onTimeout: () => null,
+    );
+    return operation.result;
+  }
+
+  Future<Uint8List?> _loadOrCreate(
+    String name,
+    LinuxProfileOwnership? owner,
+    bool allowCreate,
+  ) async {
+    final marker = owner?.pendingMarker(name);
+    // After process loss, provider completion is unknown. Recovery requires an
+    // isolated provider audit; even a nonempty read cannot prove no late write.
+    if (marker?.existsSync() ?? false) return null;
+    var writing = false;
+    try {
+      if (marker != null) await marker.writeAsString('read', flush: true);
+      final stored = await _storage.read(name);
+      if (stored != null) {
+        Uint8List? bytes;
+        try {
+          final decoded = base64Decode(stored);
+          if (decoded.length == 32) bytes = Uint8List.fromList(decoded);
+        } catch (_) {
+          /* Preserve malformed Linux entries for recovery. */
+        }
+        if (bytes != null) {
+          if (marker != null) await marker.delete();
+          return bytes;
+        }
+        if (owner != null) {
+          if (marker != null) await marker.delete();
+          return null;
+        }
+      }
+      final existingHive =
+          owner != null &&
+          name == hiveBoxKeyName &&
+          owner.directory
+              .listSync(recursive: true, followLinks: false)
+              .any(
+                (entry) =>
+                    entry is File &&
+                    RegExp(r'_enc\.hive[c]?$').hasMatch(entry.path),
+              );
+      if (!allowCreate || existingHive) {
+        if (marker != null) await marker.delete();
+        return null;
+      }
+      writing = true;
+      if (marker != null) await marker.writeAsString('write', flush: true);
       final fresh = Uint8List.fromList(Hive.generateSecureKey());
-      await _storage.write(name, base64Encode(fresh)).timeout(storageTimeout);
-      _cache[name] = fresh;
+      final encoded = base64Encode(fresh);
+      await _storage.write(name, encoded);
+      // Await completion BEFORE read-back. A timeout never starts candidate B.
+      if (await _storage.read(name) != encoded) return null;
+      if (marker != null) await marker.delete();
       return fresh;
     } catch (_) {
-      // Secure storage unavailable (or wedged past the timeout): record the
-      // failure so the rest of this startup degrades immediately instead of
-      // each caller waiting out another timeout. Callers decide how to
-      // degrade. The generated-but-unpersisted key is deliberately NOT
-      // returned: persisting it is what makes it usable next launch.
-      _failedAt[name] = DateTime.now();
+      if (!writing && marker != null && marker.existsSync()) {
+        await marker.delete();
+      }
       return null;
+    }
+  }
+
+  /// Shutdown hook: never release ownership while a key call is unresolved.
+  static Future<void> settlePendingOperations() async {
+    for (final scope in _operations.values.toList()) {
+      await Future.wait(scope.values.map((operation) => operation.settled));
     }
   }
 
   /// Device-pool file key for the P1-2 FRB handoff. Same infrastructure as
   /// the Hive key, separate key material.
-  Future<Uint8List?> devicePoolKey() => getOrCreateKey(name: devicePoolKeyName);
+  Future<Uint8List?> devicePoolKey({bool allowCreate = true}) =>
+      getOrCreateKey(name: devicePoolKeyName, allowCreate: allowCreate);
 
   @visibleForTesting
   void resetForTest() {
-    _cache.clear();
-    _pending.clear();
-    _failedAt.clear();
+    _operations.remove(_scope);
   }
+}
+
+class _KeyOperation {
+  DateTime? failedAt;
+  late Future<Uint8List?> result;
+  late Future<Uint8List?> settled;
 }

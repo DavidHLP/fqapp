@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fqapp/services/backend_transport.dart';
 
@@ -8,6 +10,28 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   tearDown(RustBackendTransport.resetRuntimeForTest);
+
+  test('Linux refuses runtime startup before acquiring ownership', () async {
+    var calls = 0;
+    RustBackendTransport.runtimeInitializer = () async {
+      calls++;
+    };
+    final transport = RustBackendTransport();
+    try {
+      await expectLater(
+        transport.start(
+          configPath: 'unused',
+          poolPath: 'unused',
+          filterPath: 'unused',
+          runtimeDir: 'unused',
+        ),
+        throwsStateError,
+      );
+      expect(calls, 0);
+    } finally {
+      await transport.close();
+    }
+  }, skip: !Platform.isLinux);
 
   test(
     'a failed bridge init is not cached and the next attempt runs again',

@@ -4,6 +4,7 @@ import 'package:hive_ce/hive.dart';
 
 import 'app_log.dart';
 import 'secure_key_provider.dart';
+import 'linux_profile_ownership.dart';
 
 /// Opens every Hive box encrypted (hive_ce, AES-256 `HiveAesCipher`).
 ///
@@ -103,15 +104,21 @@ class EncryptedHive {
     // hive_ce's openBox takes a non-nullable compaction strategy (its
     // default is internal, so reproduce it here: compact once 15% of the
     // entries and at least 60 entries have been deleted).
+    final provider = keys ?? SecureKeyProvider.instance;
+    if (provider.strictLinux) {
+      final home = (Hive as dynamic).homePath as String?;
+      if (home == null) throw StateError('Hive 资料目录尚未初始化');
+      LinuxProfileOwnership.requireCurrent().requireProfileDirectory(home);
+    }
     final strategy =
         compactionStrategy ??
         (int entries, int deleted) => deleted > 60 && deleted / entries > 0.15;
     final encName = encryptedBoxName(name);
     if (hive.isBoxOpen(encName)) return hive.box<E>(encName);
 
-    final key = await (keys ?? SecureKeyProvider.instance).getOrCreateKey();
+    final key = await provider.getOrCreateKey();
     if (key == null) {
-      if (requireEncryption) {
+      if (requireEncryption || provider.strictLinux) {
         throw StateError('加密密钥不可用，拒绝以明文打开 $name');
       }
       // An encrypted box already on disk means an earlier session did have a
@@ -195,15 +202,21 @@ class EncryptedHive {
     bool requireEncryption = false,
     CompactionStrategy? compactionStrategy,
   }) async {
+    final provider = keys ?? SecureKeyProvider.instance;
+    if (provider.strictLinux) {
+      final home = (Hive as dynamic).homePath as String?;
+      if (home == null) throw StateError('Hive 资料目录尚未初始化');
+      LinuxProfileOwnership.requireCurrent().requireProfileDirectory(home);
+    }
     final strategy =
         compactionStrategy ??
         (int entries, int deleted) => deleted > 60 && deleted / entries > 0.15;
     final encName = encryptedBoxName(name);
     if (hive.isBoxOpen(encName)) return hive.lazyBox<E>(encName);
 
-    final key = await (keys ?? SecureKeyProvider.instance).getOrCreateKey();
+    final key = await provider.getOrCreateKey();
     if (key == null) {
-      if (requireEncryption) {
+      if (requireEncryption || provider.strictLinux) {
         throw StateError('加密密钥不可用，拒绝以明文打开 $name');
       }
       if (_encryptedBoxOnDisk(encName)) {

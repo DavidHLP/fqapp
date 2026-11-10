@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 
 import 'package:fqapp/services/encrypted_hive.dart';
+import 'package:fqapp/services/linux_profile_ownership.dart';
 import 'package:fqapp/services/secure_key_provider.dart';
 
 /// P1-3: hive_ce + encrypted boxes with crash-safe legacy migration.
@@ -25,6 +26,32 @@ void main() {
   tearDown(() async {
     await Hive.close();
     await dir.delete(recursive: true);
+  });
+
+  test('Linux missing key refuses normal and lazy plaintext boxes', () async {
+    final owner = await LinuxProfileOwnership.acquire(
+      dir,
+      keyNamespaceDirectory: dir,
+    );
+    try {
+      final unavailable = SecureKeyProvider(
+        storage: _ThrowingStorage(),
+        strictLinux: true,
+        ownership: owner,
+      );
+      await expectLater(
+        EncryptedHive.openBox<dynamic>(Hive, 'sensitive', keys: unavailable),
+        throwsStateError,
+      );
+      await expectLater(
+        EncryptedHive.openLazyBox<dynamic>(Hive, 'chapters', keys: unavailable),
+        throwsStateError,
+      );
+      expect(await Hive.boxExists('sensitive'), isFalse);
+      expect(await Hive.boxExists('chapters'), isFalse);
+    } finally {
+      await owner.close();
+    }
   });
 
   test('encrypted box does not leave plaintext on disk', () async {

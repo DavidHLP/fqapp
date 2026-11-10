@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -8,6 +9,7 @@ import '../src/rust/frb_generated.dart';
 import 'app_log.dart';
 import 'rust_bootstrap.dart';
 import 'secure_key_provider.dart';
+import 'linux_profile_ownership.dart';
 
 /// One backend response.
 ///
@@ -319,6 +321,7 @@ class RustBackendTransport implements BackendTransport {
           }
 
           checkCurrent();
+          if (Platform.isLinux) LinuxProfileOwnership.requireCurrent();
           await ensureRuntime();
           checkCurrent();
           final previous = _session;
@@ -335,14 +338,20 @@ class RustBackendTransport implements BackendTransport {
           }
           // P1-2: provision the device-pool encryption key before init, so the
           // Rust core reads an encrypted pool file on its first load. A null
-          // key (secure storage unavailable) keeps the old plaintext behavior;
-          // a provisioning failure never blocks startup.
-          final poolKey = await SecureKeyProvider().devicePoolKey();
+          // key/provisioning failure blocks Linux; other platforms retain
+          // their existing fallback policy.
+          final poolKey = await SecureKeyProvider.instance.devicePoolKey(
+            allowCreate: !Platform.isLinux || !File(poolPath).existsSync(),
+          );
+          if (Platform.isLinux && poolKey == null) {
+            throw StateError('设备池密钥不可用，拒绝明文初始化');
+          }
           checkCurrent();
           if (poolKey != null) {
             try {
               await rust.setDevicePoolKey(key: poolKey);
             } catch (_) {
+              if (Platform.isLinux) rethrow;
               // Keep starting: the pool falls back to plaintext + a warning.
             }
             checkCurrent();
