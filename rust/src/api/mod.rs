@@ -764,6 +764,8 @@ mod tests {
     static CORE_TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
     fn runtime_dir(tag: &str) -> PathBuf {
+        // Lifecycle fixtures use a synthetic key through the production provisioning boundary.
+        set_device_pool_key(vec![0x1d; 32]).expect("synthetic pool key");
         let nanos = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_nanos())
