@@ -47,7 +47,11 @@ class LinuxProfileOwnership {
         final handle = await File(path).open(mode: FileMode.append);
         locks.add(handle);
         await handle.lock(FileLock.exclusive);
-        final permissions = await Process.run('chmod', ['700', canonical]);
+        // Hive may live in Documents; only our key namespace is private.
+        final permissions = await Process.run('chmod', [
+          if (identical(dir, namespace)) '700' else '600',
+          if (identical(dir, namespace)) canonical else path,
+        ]);
         if (permissions.exitCode != 0) {
           throw FileSystemException('资料目录权限设置失败', canonical);
         }

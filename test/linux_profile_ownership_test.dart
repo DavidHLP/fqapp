@@ -68,6 +68,27 @@ void main() {
     }
   });
 
+  test('locking preserves shared profile directory permissions', () async {
+    final profile = await Directory('${directory.path}/Documents').create();
+    final namespace = Directory('${directory.path}/keys');
+    final changed = await Process.run('chmod', ['2770', profile.path]);
+    expect(changed.exitCode, 0);
+    final before = (await profile.stat()).mode;
+    final owner = await LinuxProfileOwnership.acquire(
+      profile,
+      keyNamespaceDirectory: namespace,
+    );
+    try {
+      expect((await profile.stat()).mode, before);
+      expect((await namespace.stat()).mode & 0x1ff, 0x1c0);
+      final lock = File('${profile.path}/.fqapp-writer.lock');
+      expect((await lock.stat()).mode & 0x1ff, 0x180);
+    } finally {
+      await owner.close();
+    }
+    expect((await profile.stat()).mode, before);
+  });
+
   test('same isolate collision does not release original owner', () async {
     final owner = await LinuxProfileOwnership.acquire(
       directory,
