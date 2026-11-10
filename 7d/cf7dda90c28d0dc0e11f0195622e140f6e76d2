@@ -1,0 +1,60 @@
+lib/services/app_log.dart
+  s_52fe13dd90b35d::t_5234854a57547a 490-496
+rust/src/api/mod.rs
+  s_52fe13dd90b35d::t_71e42cbf135320 174
+lib/services/audio_downloader.dart
+  s_52fe13dd90b35d::t_5234854a57547a 219-238,285-312,369,378,383,410,450,479,483-484
+  s_52fe13dd90b35d::t_d0f8189f1fdb31 116,178,522
+lib/main.dart
+  s_52fe13dd90b35d::t_71e42cbf135320 80-89
+  s_52fe13dd90b35d::t_5234854a57547a 17-19,96-103,109,127-130,132-141,143-144,149-157,224,227,229,250,378,417,505
+  s_52fe13dd90b35d::t_8ceda401897a77 78,94,454-462
+  s_52fe13dd90b35d::t_02d3e48bf9a3f5 20,71-77,93,418,425-426,469,476
+rust/src/device/mod.rs
+  s_52fe13dd90b35d::t_71e42cbf135320 184,199-205,213,236,239-245,247-265,327,717-729,753-755
+lib/services/drama_downloader.dart
+  s_52fe13dd90b35d::t_5234854a57547a 235-254,287-314,352,361,366,393,433,459,463-464
+  s_52fe13dd90b35d::t_a19b8c5f959de1 120,211,498
+rust/tests/device_pool_linux_strict.rs
+  s_52fe13dd90b35d::t_8ceda401897a77 1-47,49
+  s_52fe13dd90b35d::t_bda8765a07c43f 48
+lib/services/desktop_platform.dart
+  s_52fe13dd90b35d::t_5234854a57547a 72,193,216,218-220
+  s_52fe13dd90b35d::t_71e42cbf135320 202-207
+lib/services/backend_service.dart
+  s_52fe13dd90b35d::t_8ceda401897a77 421,425-426
+  s_52fe13dd90b35d::t_71e42cbf135320 422,424
+  s_52fe13dd90b35d::t_5234854a57547a 419-420,427-434
+  s_52fe13dd90b35d::t_8bfd756413d08e 48,214,423
+rust/src/device/pool_crypto.rs
+  s_52fe13dd90b35d::t_71e42cbf135320 135-144,166-171
+test/app_bootstrap_test.dart
+  s_52fe13dd90b35d::t_8ceda401897a77 15-99,107,118-121,123-124,127,134,274
+  s_52fe13dd90b35d::t_4311c209fc252a 9
+test/audio_downloader_test.dart
+  s_52fe13dd90b35d::t_8fc2f2f672fe4d 279-306
+test/backend_service_test.dart
+  s_52fe13dd90b35d::t_bab662b9892f56 137-156
+test/desktop_security_close_test.dart
+  s_52fe13dd90b35d::t_1e0fe73330cfb1 1-31
+test/linux_profile_ownership_test.dart
+  s_52fe13dd90b35d::t_9616f08b26630f 49-52
+test/support/linux_profile_lock_process.dart
+  s_52fe13dd90b35d::t_093193ef3285d5 4,12-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7dcf7dda90c28d0dc0e11f0195622e140f6e76d2",
+  "prompts": {},
+  "sessions": {
+    "s_52fe13dd90b35d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c555-9327-7c92-a857-b42ddb1fb260",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
