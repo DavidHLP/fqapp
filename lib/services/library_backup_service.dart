@@ -1,4 +1,5 @@
 import 'platform_channel.dart';
+
 import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
@@ -15,6 +16,8 @@ import 'shelf_store.dart';
 class LibraryBackupService {
   static const _channel = AppMethodChannel('fqapp/library_backup');
 
+  // Test-only synchronisation; production never installs a crash switch.
+  Future<void> Function(String boundary)? restoreBoundary;
   AiBackupRestoreResult? lastAiRestore;
   String? lastAiExportNote;
 
@@ -94,6 +97,19 @@ class LibraryBackupService {
   Future<Set<String>> aiBookIds() =>
       AiBackupService.instance.bookIdsWithAssets();
 
+  Future<void> scheduleLinuxRestore(LibraryBackup backup) async {
+    final owner = LinuxProfileOwnership.requireCurrent();
+    owner.requireHeld();
+    if (backup.aiData case final String ai when ai.isNotEmpty) {
+      await AiReadingController.instance.init();
+      await AiBackupService.instance.prepareEncoded(ai);
+    }
+    if (backup.groups.isNotEmpty && !ShelfGroupStore.instance.isReady) {
+      throw StateError('本地分类尚未初始化');
+    }
+    LinuxLibraryRecovery.schedule(owner, backup.encode());
+  }
+
   Future<AiBackupRestoreResult?> restoreAi(LibraryBackup backup) async {
     _requireSafeRestore();
     final ai = backup.aiData;
@@ -150,11 +166,14 @@ class LibraryBackupService {
     final merge = backup.groups.isEmpty
         ? (groups: 0, assignments: 0)
         : await groupStore.mergeBackup(backup.groups);
+    await restoreBoundary?.call('groups');
     final shelf = await ShelfStore.instance.mergeBackup(backup.shelf);
+    await restoreBoundary?.call('shelf');
     final library = await LibraryStore.instance.mergeBackup(
       history: backup.history,
       watched: backup.watched,
     );
+    await restoreBoundary?.call('history');
     lastAiRestore = aiPlan == null
         ? null
         : await AiBackupService.instance.commit(aiPlan);
@@ -170,8 +189,10 @@ class LibraryBackupService {
   static void _requireSafeRestore() {
     if (defaultTargetPlatform != TargetPlatform.linux) return;
     LinuxProfileOwnership.requireCurrent().requireHeld();
-    // The process lock cannot quiesce this process's store queues. Until the
-    // lifecycle owns that boundary, refuse rather than copy live Hive files.
-    throw const LinuxLibraryRestoreBlocked();
+    // Only the cold-start recovery gate owns the closed-profile boundary;
+    // the process lock alone cannot quiesce live business store queues.
+    if (!LinuxLibraryRecovery.isMerging) {
+      throw const LinuxLibraryRestoreBlocked();
+    }
   }
 }

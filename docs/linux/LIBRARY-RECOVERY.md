@@ -1,6 +1,6 @@
 # 备份字段与 Linux 恢复边界
 
-本批是 T22/V04 的安全保全批次，**不是完整恢复验收**。Linux 恢复入口在任何 store 初始化/合并写入前拒绝；导出仍可用。非 Linux 的 AI、分类预校验和补缺合并顺序保持。不得移除门禁后直接复制活动 Hive，也不得把空箱当恢复成功。
+Linux 使用启动前恢复：备份页预检后保存待恢复操作，用户关闭窗口并重新启动；下一次启动在业务挂载前保全闭箱资料、重开恢复所需 stores、按既有合同合并并关闭/flush，再写完成记录。失败保留 pending 与快照并显示诊断；重启重入。直接在线 restore 仍被拒绝。非 Linux 恢复合同保持。
 
 ## 可移植文件覆盖表（当前源码审计）
 
@@ -20,7 +20,7 @@
 
 ## 原始资料保全服务
 
-`LinuxLibraryRecovery.preserveClosedProfile` 是未接入在线恢复的离线保全原语。调用者必须停止后端、下载及其他写入，保存进度、关闭所有 Hive，并持续持有同一个 `LinuxProfileOwnership`；本服务不擅自关闭业务、不释放/删除锁、不访问 keyring。
+`LinuxLibraryRecovery.preserveClosedProfile` 由启动前恢复模式调用。调用者必须停止后端、下载及其他写入，保存进度、关闭所有 Hive，并持续持有同一个 `LinuxProfileOwnership`；本服务不擅自关闭业务、不释放/删除锁、不访问 keyring。
 
 它先盘点持锁目录，拒绝符号链接和检测到的活动 Hive 箱；再创建随机同级隔离目录（0700），逐文件复制实际原始内容到 `profile/`，单独保存源备份 bytes。它只跳过活实例的 `.fqapp-writer.lock`，保留密文 Hive、隔离文件、本地书与目录内的其他文件。复制后的 `sync -f` 成功后，flush 临时标记并原子 rename 为 `snapshot-ready`，再次 `sync -f`。异常保留源/部分副本，绝不删除或自动打开空箱。
 
@@ -29,14 +29,17 @@
 ## 恢复/回滚操作说明
 
 1. 保留源 JSON、现有资料、隔离文件和匹配密钥。不要删除 pending 标记、旧箱或锁来试图解锁。
-2. **当前 Linux 产品恢复被阻塞**。不要直接调用现有跨箱合并或 AI 独立入口绕过门禁。
+2. 在备份页选择文件并预览，确认后保存待恢复操作，关闭窗口并重新启动；不能直接调用在线跨箱合并或 AI 独立入口绕过恢复模式。
 3. 已由受控离线生命周期产生的快照：检查 snapshot-ready 并逐文件核对；在新的独立资料目录复制 `profile/`，以匹配版本和原密钥做只读核对。保留快照、旧/新工作目录；禁止覆盖活动原目录或让旧程序直接写新版目录。
 4. 缺密钥/错密钥/原有隔离空箱属于另一个安全恢复问题；不要在 clone 上开启正常业务写入冒充恢复成功。
 
-## 阻塞与最小后续方案
+## 冷启动状态与覆盖清单（续批）
 
-现有跨进程锁不暂停本进程 LibraryStore/ShelfGroupStore/AIStore/预算/settings 各自队列；在线备份页无法独占所有写者。AI 恢复还触达 settings/rates，单一 JSON 导出和单箱 flush 不是一致快照。当前 scope 禁止修改 main/安全入口，故没有新增泛用事务框架，也没有自动 close/reopen 全部 Hive。
-
-最小后续接点应由启动/关闭所有者提供“恢复模式”：在挂载业务和启动后端前、同一资料锁内，完成 key 确认、格式/AI/group 预检、闭箱原始快照；保留源文件和 durable operation record 后开箱执行现有合并，每步 flush 并记录，不假设跨箱原子性。重启见未完成记录必须先提示继续/选择前快照，不能先挂正常业务。完整成功后才写独立完成标记。复制/rename/目录持久化失败均保留未完成状态。
-
-必须补齐分类后、书架后、历史/已看集后、AI 部分提交后、最终标记前后独立子进程屏障/SIGKILL；全新进程逐字段核对和重复补缺，不覆盖重启期间的新值。现有 store 注入不足以覆盖每一边界，后续须为恢复模式提供受限的测试注入。当前只有快照完成边界的进程崩溃证据，以及受控 sync 失败和分类写入失败；没有全量恢复崩溃矩阵、真实磁盘满/写拒绝/rename 失败或 VM 硬断电证据。
+- `.fqapp-restore.json` 是恢复 journal，与密钥命名空间的 `.purpose.pending` 安全标记不同；不会存密钥或清理安全标记。
+- `.fqapp-restore-*` 同级 0700 目录保存原备份及完成后归档 receipt；`.fqapp-before-restore-*` 保存整个资料目录原件（不复制系统 keyring）。失败/孤立快照不自动清理。
+- pending 在业务进程中只安排操作；快照和导入在下一次新进程完成，沿用同一资料/密钥命名空间锁。正常关闭仍走既有 flush、卸载、停下载/播放器、停后端、Hive.close、释放所有权顺序。
+- 恢复启动先确认安全 provider，再进入恢复门；严格试开既有加密文件阻止错误密钥进入 EncryptedHive 的隔离后空箱路径。恢复完成前从不挂载 FqApp 或后台业务。
+- 顺序为 snapshot → journal merging → stores init/AI预检 → groups → shelf → history/watched → AI → Hive.close/flush → complete。无跨箱原子性；中间状态靠同一备份补缺重入。AI沿用 revision/rate/prompt 等现有规则。
+- 完成页面确认后将 journal 归档为 receipt，提示关闭重启进入正常业务；不在活跃 UI 重开 Hive。失败页面显示具体错误及快照位置，关闭重启重入；完整回退仍按上述离线保留副本流程，禁止覆盖原快照。
+- 自动证据见 `test/library_recovery_matrix_test.dart`：真实独立 Flutter engine 在 snapshot、pending、groups、shelf、history、AI第一条提示词、完成前/后被 SIGKILL；另启进程重入/重复核对。合成 fixture 不覆盖所有 AI 资产组合，既有 AI tests 补充分段/合并合同。
+- I/O覆盖：模拟 group ENOSPC、sync exit28、受控 journal临时路径写入失败；不等于真实磁盘满/包权限验收。没有 VM 断电证据。

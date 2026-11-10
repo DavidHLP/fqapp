@@ -192,6 +192,9 @@ class AiBackupService {
       _settings = settings ?? AiSettingsStore.instance;
 
   static final instance = AiBackupService();
+
+  // Test-only barrier after a real partial AI commit.
+  Future<void> Function()? afterPromptCommit;
   final AiStore _store;
   final AiSettingsStore _settings;
 
@@ -411,6 +414,7 @@ class AiBackupService {
     for (final prompt in plan.promptsToWrite) {
       await _store.putPrompt(prompt);
       prompts++;
+      await afterPromptCommit?.call();
     }
     for (final candidate in plan.candidatesToWrite) {
       await _store.putCandidate(candidate);

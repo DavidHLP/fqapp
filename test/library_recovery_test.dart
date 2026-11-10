@@ -77,6 +77,29 @@ void main() {
     },
   );
 
+  test(
+    'journal publication I/O failure retains source and never marks complete',
+    () async {
+      final profile = Directory('${root.path}/profile');
+      final owner = await LinuxProfileOwnership.acquire(
+        profile,
+        keyNamespaceDirectory: Directory('${root.path}/keys'),
+      );
+      // Controlled filesystem obstacle, not a full disk or real permission test.
+      Directory('${profile.path}/.fqapp-restore.json.tmp').createSync();
+      final bytes = Uint8List.fromList([123, 125]);
+      expect(
+        () => LinuxLibraryRecovery.schedule(owner, bytes),
+        throwsA(isA<FileSystemException>()),
+      );
+      expect(LinuxLibraryRecovery.hasPending(owner), isFalse);
+      final operation = root.listSync().whereType<Directory>().singleWhere(
+        (e) => e.path.contains('.fqapp-restore-'),
+      );
+      expect(File('${operation.path}/backup.json').readAsBytesSync(), bytes);
+    },
+  );
+
   String dartExecutable() => Platform.resolvedExecutable.contains('/bin/cache/')
       ? '${Platform.resolvedExecutable.split('/bin/cache/').first}/bin/cache/dart-sdk/bin/dart'
       : Platform.resolvedExecutable;

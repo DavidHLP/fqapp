@@ -125,7 +125,7 @@ void main() {
     expect(find.textContaining('2 个分组（3 条分类归属）'), findsOneWidget);
   });
 
-  testWidgets('Linux blocked restore explains preservation without success', (
+  testWidgets('Linux schedules restart recovery without claiming success', (
     tester,
   ) async {
     mockChannel(tester, open: _groupedBackupBytes());
@@ -136,7 +136,7 @@ void main() {
       await tapAndWait(
         tester,
         find.text('确认恢复到本机'),
-        find.textContaining('Linux 安全恢复暂不可用'),
+        find.textContaining('已保存待恢复操作'),
       );
       expect(find.textContaining('恢复完成：'), findsNothing);
       expect(library.historySnapshot(), isEmpty);

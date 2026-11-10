@@ -1,9 +1,13 @@
+import 'services/linux_library_recovery.dart';
+import 'services/library_backup_service.dart';
+import 'models/library_backup.dart';
 import 'services/audio_downloader.dart';
 import 'widgets/desktop_app_frame.dart';
 import 'services/native_player.dart';
 import 'services/desktop_platform.dart';
 import 'services/platform_capabilities.dart';
 import 'services/platform_channel.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
@@ -15,7 +19,9 @@ import 'package:hive_ce_flutter/hive_flutter.dart';
 
 import 'dart:async';
 import 'dart:io';
+
 import 'package:path_provider/path_provider.dart';
+
 import 'services/linux_profile_ownership.dart';
 import 'services/secure_key_provider.dart';
 
@@ -83,7 +89,7 @@ Future<void> main() async {
           initializer: _prepareRuntime,
           failureHelp:
               '请关闭其他 fqapp 实例后重试；若仍失败，请检查资料目录权限和 Secret Service。不要删除资料、密钥或未决标记。',
-          child: const ProviderScope(child: FqApp()),
+          child: const _LinuxRecoveryGate(child: ProviderScope(child: FqApp())),
         ),
       ),
     );
@@ -145,6 +151,112 @@ Future<void> _prepareRuntime() async {
       await AppLog.instance.stopPersistence();
       await LinuxProfileOwnership.current?.close();
     };
+  }
+}
+
+/// This gate runs before FqApp, backend startup and all normal store writers.
+class _LinuxRecoveryGate extends StatefulWidget {
+  const _LinuxRecoveryGate({required this.child});
+  final Widget child;
+  @override
+  State<_LinuxRecoveryGate> createState() => _LinuxRecoveryGateState();
+}
+
+class _LinuxRecoveryGateState extends State<_LinuxRecoveryGate> {
+  bool _pending = true;
+  bool _busy = true;
+  bool _complete = false;
+  bool _acknowledged = false;
+  String? _error;
+  @override
+  void initState() {
+    super.initState();
+    _resume();
+  }
+
+  Future<void> _resume() async {
+    final owner = LinuxProfileOwnership.requireCurrent();
+    if (!LinuxLibraryRecovery.hasPending(owner)) {
+      setState(() {
+        _pending = false;
+        _busy = false;
+      });
+      return;
+    }
+    try {
+      await LinuxLibraryRecovery.resume(
+        owner: owner,
+        merge: (bytes) async {
+          final backup = LibraryBackup.decode(bytes);
+          final key = await SecureKeyProvider.instance.getOrCreateKey();
+          if (key == null) throw StateError('恢复密钥未确认');
+          Hive.init(owner.directory.path);
+          // Strictly open existing encrypted files before EncryptedHive can
+          // quarantine a decryption failure and return an empty replacement.
+          for (final file in owner.directory.listSync().whereType<File>()) {
+            final name = file.uri.pathSegments.last;
+            if (name.endsWith('_enc.hive')) {
+              await Hive.openBox<dynamic>(
+                name.substring(0, name.length - 5),
+                encryptionCipher: HiveAesCipher(key),
+              );
+            }
+          }
+          await Hive.close();
+          await LibraryStore.instance.init();
+          await ShelfStore.instance.init();
+          await ShelfGroupStore.instance.init();
+          await LibraryBackupService().restore(backup);
+          await Hive.close();
+        },
+      );
+      _complete = true;
+    } catch (error) {
+      _error = error.toString();
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_pending) return widget.child;
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_busy) const CircularProgressIndicator(),
+              Text(
+                _busy
+                    ? '正在启动前恢复，请勿关闭…'
+                    : _complete
+                    ? '恢复完成。原资料快照及源备份已保留。'
+                    : '恢复未完成，业务启动已阻止。',
+              ),
+              if (_error != null)
+                SelectableText(
+                  '$_error\n请保留资料、密钥及恢复记录。关闭后重启可重入恢复；原始快照位于资料目录旁的 .fqapp-before-restore-*。',
+                ),
+              if (_complete && !_acknowledged)
+                OutlinedButton(
+                  onPressed: () {
+                    LinuxLibraryRecovery.acknowledge(
+                      LinuxProfileOwnership.requireCurrent(),
+                    );
+                    setState(() {
+                      _acknowledged = true;
+                      _error = '完成记录已归档，请关闭窗口后重新启动。';
+                    });
+                  },
+                  child: const Text('确认完成，下次启动进入应用'),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

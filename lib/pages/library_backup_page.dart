@@ -12,6 +12,7 @@
 // - Busy progress uses a linear indicator because fqapp's export/restore
 //   reports no per-item totals.
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -183,6 +184,17 @@ class _LibraryBackupPageState extends State<LibraryBackupPage> {
     final backup = _preview;
     if (backup == null) return;
     await _run('正在恢复，请稍候…', () async {
+      if (defaultTargetPlatform == TargetPlatform.linux) {
+        await _service.scheduleLinuxRestore(backup);
+        if (mounted) {
+          setState(() {
+            _preview = null;
+            _message =
+                '已保存待恢复操作。请关闭窗口并重新启动 fqapp；启动时将先保全完整资料再恢复，完成前不会进入业务页面。关闭失败时请重试关闭，不要删除资料或密钥。';
+          });
+        }
+        return;
+      }
       final result = await _service.restore(backup);
       if (!mounted) return;
       setState(() {
