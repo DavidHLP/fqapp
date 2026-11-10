@@ -1,0 +1,19 @@
+docs/linux/IMPLEMENTATION-STATUS.md
+  s_9bcb066a8c75ae::t_343f17ee296936 165-177
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c32d5926079cf734590723fe6b75a2a8801ffa22",
+  "prompts": {},
+  "sessions": {
+    "s_9bcb066a8c75ae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c59c-2375-7850-8796-0a90c9342b15",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
