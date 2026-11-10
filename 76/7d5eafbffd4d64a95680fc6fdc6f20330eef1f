@@ -1,0 +1,65 @@
+lib/services/rust_bootstrap_io.dart
+  s_232a2261e4a050::t_9d89543d108b19 3
+  s_232a2261e4a050::t_801f7aaba0e7e2 15
+  s_232a2261e4a050::t_b9fb91b4608dbf 4,6,24-28
+test/desktop_platform_test.dart
+  s_232a2261e4a050::t_3435ecdc91322c 1-2,8
+  s_232a2261e4a050::t_f30035d0af08ea 20-38
+  s_232a2261e4a050::t_1f9a1c0e6705cb 39
+.metadata
+  s_232a2261e4a050::t_a651c1a5748e16 27-29
+linux/flutter/generated_plugin_registrant.h
+  s_232a2261e4a050::t_62e6b711b6b373 1-15
+linux/flutter/generated_plugins.cmake
+  s_232a2261e4a050::t_62e6b711b6b373 1-31
+scripts/verify_windows_media.py
+  s_232a2261e4a050::t_d6749006c1cee1 20-22
+  s_232a2261e4a050::t_2ef9e24bd306bc 1,13,24-25
+lib/services/desktop_media.dart
+  s_232a2261e4a050::t_f30035d0af08ea 5
+  s_232a2261e4a050::t_11b1f35c7b63f2 16-18
+linux/flutter/generated_plugin_registrant.cc
+  s_232a2261e4a050::t_62e6b711b6b373 1-39
+linux/CMakeLists.txt
+  s_232a2261e4a050::t_d661c894e7d996 27,35,77-81,102,148
+  s_232a2261e4a050::t_fb9cfbe4df28df 1-26,28-34,36-76,82-101,103-147
+rust/build.rs
+  s_232a2261e4a050::t_751a7241d3a029 27-28
+  s_232a2261e4a050::t_a13179f9258e2f 2-3,17
+linux/.gitignore
+  s_232a2261e4a050::t_7300b1bd9eed07 1
+linux/flutter/CMakeLists.txt
+  s_232a2261e4a050::t_504539cee8a0f0 1-88
+linux/runner/CMakeLists.txt
+  s_232a2261e4a050::t_32b2332aca7c3c 1-26
+linux/runner/main.cc
+  s_232a2261e4a050::t_1f0700338419cd 1-6
+linux/runner/my_application.cc
+  s_232a2261e4a050::t_f6b354ba8ffaf4 1-148
+linux/runner/my_application.h
+  s_232a2261e4a050::t_45b2289f28a70d 1-21
+pubspec.lock
+  s_232a2261e4a050::t_c81f0984d64e97 606-613
+pubspec.yaml
+  s_232a2261e4a050::t_11b02d3b5d1678 69-70
+rust/Cargo.toml
+  s_232a2261e4a050::t_a2aabe48df6646 46
+rust/src/lib.rs
+  s_232a2261e4a050::t_e853231f26896e 38,40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "767d5eafbffd4d64a95680fc6fdc6f20330eef1f",
+  "prompts": {},
+  "sessions": {
+    "s_232a2261e4a050": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c54a-da50-70a1-8646-2fc948f8f6d2",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
