@@ -1,0 +1,27 @@
+LINUX.md
+  s_73a14774e35879::t_9cef37e43e7a58 87-91
+scripts/build_linux_package.sh
+  s_73a14774e35879::t_d7b6262893470b 13
+packaging/arch/build_release.sh
+  s_73a14774e35879::t_d7b6262893470b 7,10-27
+test/linux_packaging_test.py
+  s_73a14774e35879::t_daf986b35b0e74 1-85
+packaging/arch/check_source.py
+  s_73a14774e35879::t_d7b6262893470b 1-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cd1745551b7b54c2ebf76244a2762b7472c19f57",
+  "prompts": {},
+  "sessions": {
+    "s_73a14774e35879": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c43b-e348-7d01-b834-096a8f29cf29",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
