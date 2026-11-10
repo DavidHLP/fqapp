@@ -201,7 +201,11 @@ void main() {
         ),
       ),
     );
-    await player.play();
+    // Keep rendering the real texture while the native play call is pending.
+    var started = false;
+    final starting = player.play().then((_) => started = true);
+    await wait(() => started, 'production play acknowledgement');
+    await starting;
     await wait(
       () => player.firstFrameRendered && player.position.inMilliseconds > 1200,
       'texture first frame and clock',
