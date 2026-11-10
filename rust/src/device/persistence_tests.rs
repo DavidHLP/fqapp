@@ -348,8 +348,7 @@ async fn usage_only_picks_are_debounced_until_a_structural_save() {
         "the save must clear the dirty flag"
     );
     let persisted: PoolFile =
-        serde_json::from_str(&persisted_pool_json(&path))
-            .expect("valid pool json");
+        serde_json::from_str(&persisted_pool_json(&path)).expect("valid pool json");
     assert_eq!(
         persisted.android.iter().map(|d| d.use_count).sum::<i64>(),
         initial_use_count + 6,
