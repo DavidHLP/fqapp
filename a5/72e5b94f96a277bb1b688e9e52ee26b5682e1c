@@ -1,0 +1,25 @@
+test/system_tts_test.dart
+  s_86d63c2dd61945::t_892b029ab94de6 257-260,262-293
+test/audio_page_test.dart
+  s_86d63c2dd61945::t_892b029ab94de6 710-712,715,724-725,731,733,737,1105,1107
+lib/services/system_tts.dart
+  s_86d63c2dd61945::t_892b029ab94de6 747-753
+lib/services/audio_playback_controller.dart
+  s_86d63c2dd61945::t_892b029ab94de6 486-491
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a572e5b94f96a277bb1b688e9e52ee26b5682e1c",
+  "prompts": {},
+  "sessions": {
+    "s_86d63c2dd61945": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c551-282a-7460-b50d-0371af7e935b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
