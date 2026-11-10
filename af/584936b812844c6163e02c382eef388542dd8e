@@ -1,0 +1,23 @@
+native/linux/CMakeLists.txt
+  s_11cd34f216944e::t_6dab1ac52f863b 24
+native/linux/bridge.cc
+  s_11cd34f216944e::t_6dab1ac52f863b 374-383
+native/linux/README.md
+  s_11cd34f216944e::t_15145b43eeeb8e 1-111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "af584936b812844c6163e02c382eef388542dd8e",
+  "prompts": {},
+  "sessions": {
+    "s_11cd34f216944e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c554-e9c4-7951-99f3-b0252d603062",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
