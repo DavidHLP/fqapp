@@ -1,0 +1,44 @@
+packaging/arch/com.fqapp.fqapp.desktop
+  s_3ca1763f90b2a8::t_800e00f1bf27b0 9
+  s_3ca1763f90b2a8::t_90da5130b579f1 1-8,10
+packaging/arch/com.fqapp.fqapp.svg
+  s_3ca1763f90b2a8::t_90da5130b579f1 1
+LINUX.md
+  s_3ca1763f90b2a8::t_b8a9b6898ee0c0 52,75-79
+  s_3ca1763f90b2a8::t_9152a43e5737d4 21
+  s_3ca1763f90b2a8::t_4c53f66aebfb83 1-20,22-51,53-74
+packaging/arch/DEPENDENCIES.md
+  s_3ca1763f90b2a8::t_4c53f66aebfb83 1-47
+packaging/arch/fqapp
+  s_3ca1763f90b2a8::t_90da5130b579f1 1-2
+packaging/arch/prepare_bundle.py
+  s_3ca1763f90b2a8::t_90da5130b579f1 1-13,15,21-34
+  s_3ca1763f90b2a8::t_b8a9b6898ee0c0 14,16-18
+  s_3ca1763f90b2a8::t_f5f253b5f66a3c 19-20
+packaging/arch/PKGBUILD
+  s_3ca1763f90b2a8::t_90da5130b579f1 1-20,22-50
+  s_3ca1763f90b2a8::t_b8a9b6898ee0c0 21
+scripts/build_linux_package.sh
+  s_3ca1763f90b2a8::t_800e00f1bf27b0 16
+  s_3ca1763f90b2a8::t_b8a9b6898ee0c0 41,56-57
+  s_3ca1763f90b2a8::t_90da5130b579f1 1-15,17-40,42-55,58-65
+.github/workflows/linux.yml
+  s_3ca1763f90b2a8::t_9152a43e5737d4 72
+  s_3ca1763f90b2a8::t_4c53f66aebfb83 1-71,73-121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f7a68fac512a0893d848a68a7d74350c5e127058",
+  "prompts": {},
+  "sessions": {
+    "s_3ca1763f90b2a8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c556-5b16-7c90-b92e-dc4d3cade3c4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
