@@ -23,6 +23,16 @@ fn temp_dir(tag: &str) -> PathBuf {
     path
 }
 
+fn persisted_pool_json(path: &Path) -> String {
+    let data = std::fs::read(path).expect("pool file");
+    let plain = if pool_crypto::pool_file_is_encrypted(&data) {
+        pool_crypto::decrypt_pool_file(&data).expect("decrypt synthetic pool")
+    } else {
+        data
+    };
+    String::from_utf8(plain).expect("pool JSON UTF-8")
+}
+
 fn pool_json(n: usize) -> String {
     let android = (0..n)
         .map(|i| Device {
@@ -132,7 +142,7 @@ fn a_commit_already_handed_to_the_runtime_cannot_replace_the_next_instance() {
 
         // The commit that had already started was allowed to finish *before*
         // retirement returned - that is the ordering the fix promises.
-        let committed = std::fs::read_to_string(&path).expect("pool file");
+        let committed = persisted_pool_json(&path);
         let landed: PoolFile = serde_json::from_str(&committed).expect("valid pool json");
         assert_eq!(
             landed.android.len(),
@@ -194,7 +204,7 @@ fn concurrent_instances_do_not_share_a_temp_file() {
             "temp files must be renamed away: {:?}",
             temp_files(&dir)
         );
-        let content = std::fs::read_to_string(&path).expect("pool file");
+        let content = persisted_pool_json(&path);
         assert!(
             content.contains("android"),
             "the file stays valid: {content}"
@@ -260,7 +270,7 @@ fn loading_and_manual_refill_never_exceed_pool_capacity() {
 
         pool.refill(4).await.expect("refill at capacity is a no-op");
         assert_eq!(pool.count().await, MAX_POOL_SIZE);
-        let persisted = tokio::fs::read_to_string(&path).await.expect("saved pool");
+        let persisted = persisted_pool_json(&path);
         let persisted: PoolFile = serde_json::from_str(&persisted).expect("valid pool");
         assert_eq!(persisted.android.len(), MAX_POOL_SIZE);
         let _ = std::fs::remove_dir_all(&dir);
@@ -338,7 +348,7 @@ async fn usage_only_picks_are_debounced_until_a_structural_save() {
         "the save must clear the dirty flag"
     );
     let persisted: PoolFile =
-        serde_json::from_str(&tokio::fs::read_to_string(&path).await.expect("pool file"))
+        serde_json::from_str(&persisted_pool_json(&path))
             .expect("valid pool json");
     assert_eq!(
         persisted.android.iter().map(|d| d.use_count).sum::<i64>(),
