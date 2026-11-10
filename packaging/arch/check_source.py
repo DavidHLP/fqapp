@@ -9,7 +9,7 @@ inputs = [
     "assets", "lib", "native", "third_party", "linux", "packaging", "scripts",
     "rust/src", "rust/tests", "rust/testdata", "rust/.cargo", ".cargo",
     "rust/build.rs", "rust/Cargo.toml", "rust/Cargo.lock",
-    "*.yaml", "*.lock", "*.cmake", "CMakeLists.txt",
+    ":(top,glob)*.yaml", ":(top,glob)*.lock", ":(top,glob)*.cmake", "CMakeLists.txt",
     ":(exclude)linux/flutter/ephemeral",
 ]
 # Deliberately include ignored assets: Flutter does not consult .gitignore.

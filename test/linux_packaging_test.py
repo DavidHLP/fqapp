@@ -79,6 +79,8 @@ for key in ("CFLAGS", "CXXFLAGS"):
                       flags["CARGO_ENCODED_RUSTFLAGS"].split("\x1f"))
         self.assertEqual((bundle / "source-commit.txt").read_text().strip(),
                          self.run_command("git", "rev-parse", "HEAD").stdout.strip())
+        (bundle / "generated.cmake").write_text("# generated build output\n")
+        self.run_command("python", "packaging/arch/check_source.py", str(self.root))
 
 
 if __name__ == "__main__":

@@ -90,6 +90,7 @@ jobs:
           flutter test --no-pub
           node --test test/verify_audio_cenc_test.cjs
           python scripts/verify_windows_media.py
+          python test/linux_packaging_test.py
           bash packaging/arch/build_release.sh
           nm -D build/linux/x64/release/bundle/lib/libfqapi_core.so > build/validation/linux/core-symbols.txt
           for symbol in fq_desktop_media_open fq_desktop_media_close fq_desktop_media_free; do
