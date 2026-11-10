@@ -11,8 +11,11 @@ import 'package:fqapp/models/media_item.dart';
 import 'package:fqapp/services/encrypted_hive.dart';
 import 'package:fqapp/services/library_backup_service.dart';
 import 'package:fqapp/services/library_store.dart';
+import 'package:fqapp/services/linux_profile_ownership.dart';
 import 'package:fqapp/services/shelf_group_store.dart';
 import 'package:fqapp/services/shelf_store.dart';
+
+import 'support/library_backup_fixture.dart';
 
 /// 备份中的书架分组：可选顶层 `groups`、只补缺恢复、旧文件兼容。
 ///
@@ -21,6 +24,7 @@ import 'package:fqapp/services/shelf_store.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late Directory directory;
+  late LinuxProfileOwnership owner;
   final library = LibraryStore.instance;
   final shelf = ShelfStore.instance;
   final groups = ShelfGroupStore.instance;
@@ -28,7 +32,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     directory = await Directory.systemTemp.createTemp('fqapp-backup-groups-');
-    Hive.init(directory.path);
+    owner = await openBackupFixture(directory);
     await library.init();
     await shelf.init();
     groups.maxVisibleGroups = 100;
@@ -44,11 +48,40 @@ void main() {
       onTimeout: () => const <void>[],
     );
     try {
+      await owner.close();
       await directory.delete(recursive: true);
     } catch (_) {
       // Temp directory cleanup is noise.
     }
   });
+
+  test(
+    'group I/O failure stops before shelf/history; retry fills gaps',
+    () async {
+      await groups.init();
+      final backup = LibraryBackup.capture(
+        shelf: [ShelfRecord(item: _item('new'), addedAt: DateTime(2020))],
+        history: [
+          {'id': 'new', 'kind': 'book'},
+        ],
+        watched: {},
+        groups: _organization(groups: {'g1-a': _group('想读')}),
+      );
+      groups.writeOrganization = (_, _) async {
+        throw const FileSystemException('synthetic ENOSPC');
+      };
+      final service = LibraryBackupService();
+      await expectLater(
+        service.restore(backup),
+        throwsA(isA<FileSystemException>()),
+      );
+      expect(shelf.records(), isEmpty);
+      expect(library.historySnapshot(), isEmpty);
+      groups.writeOrganization = null;
+      expect((await service.restore(backup)).shelf, 1);
+      expect((await service.restore(backup)).shelf, 0);
+    },
+  );
 
   test('groups round-trip and an empty organization is omitted', () {
     final organization = _organization(

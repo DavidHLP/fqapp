@@ -10,13 +10,17 @@ import 'package:fqapp/models/library_backup.dart';
 import 'package:fqapp/models/media_item.dart';
 import 'package:fqapp/services/library_backup_service.dart';
 import 'package:fqapp/services/library_store.dart';
+import 'package:fqapp/services/linux_profile_ownership.dart';
 import 'package:fqapp/services/media_history_store.dart';
 import 'package:fqapp/services/shelf_group_store.dart';
 import 'package:fqapp/services/shelf_store.dart';
 
+import 'support/library_backup_fixture.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late Directory directory;
+  late LinuxProfileOwnership owner;
   final library = LibraryStore.instance;
   final shelf = ShelfStore.instance;
   final groups = ShelfGroupStore.instance;
@@ -24,7 +28,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     directory = await Directory.systemTemp.createTemp('fqapp-backup-test-');
-    Hive.init(directory.path);
+    owner = await openBackupFixture(directory);
     await library.init();
     await shelf.init();
     await groups.init();
@@ -33,7 +37,26 @@ void main() {
   tearDown(() async {
     await groups.whenIdle();
     await Hive.close();
+    await owner.close();
     await directory.delete(recursive: true);
+  });
+
+  test('malformed AI refuses before any shelf/history/group write', () async {
+    final backup = LibraryBackup.capture(
+      shelf: [ShelfRecord(item: _item('new'), addedAt: DateTime(2020))],
+      history: [
+        {'id': 'new', 'kind': 'book'},
+      ],
+      watched: {},
+      aiData: '!invalid-base64',
+    );
+    await expectLater(
+      LibraryBackupService().restore(backup),
+      throwsFormatException,
+    );
+    expect(shelf.records(), isEmpty);
+    expect(library.historySnapshot(), isEmpty);
+    expect(groups.backupOrganization()['groups'], isEmpty);
   });
 
   test(
@@ -104,7 +127,7 @@ void main() {
       await library.addHistory({'id': 'same', 'kind': 'book', 'episode': 9});
       await shelf.add(_item('same', title: '本机标题'));
       final localAddedAt = shelf.records().single.addedAt;
-      await Hive.box('watched_episodes').put('series-1', ['ep-1']);
+      await Hive.box('watched_episodes_enc').put('series-1', ['ep-1']);
       final backup = LibraryBackup.capture(
         shelf: [
           ShelfRecord(

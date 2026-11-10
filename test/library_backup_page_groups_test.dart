@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'
+    show debugDefaultTargetPlatformOverride;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
@@ -12,8 +14,11 @@ import 'package:fqapp/pages/library_backup_page.dart';
 import 'package:fqapp/services/app_theme.dart';
 import 'package:fqapp/services/encrypted_hive.dart';
 import 'package:fqapp/services/library_store.dart';
+import 'package:fqapp/services/linux_profile_ownership.dart';
 import 'package:fqapp/services/shelf_group_store.dart';
 import 'package:fqapp/services/shelf_store.dart';
+
+import 'support/library_backup_fixture.dart';
 
 /// 备份页的分组文案：预览计数、恢复完成文案、帮助文案与分组不可用提示。
 ///
@@ -21,6 +26,7 @@ import 'package:fqapp/services/shelf_store.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late Directory directory;
+  late LinuxProfileOwnership owner;
   final library = LibraryStore.instance;
   final shelf = ShelfStore.instance;
   final groups = ShelfGroupStore.instance;
@@ -29,7 +35,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     directory = await Directory.systemTemp.createTemp('fqapp-backup-page-');
-    Hive.init(directory.path);
+    owner = await openBackupFixture(directory);
     await library.init();
     await shelf.init();
     await groups.init();
@@ -42,6 +48,7 @@ void main() {
       onTimeout: () => const <void>[],
     );
     try {
+      await owner.close();
       await directory.delete(recursive: true);
     } catch (_) {
       // Temp directory cleanup is noise.
@@ -116,6 +123,27 @@ void main() {
     await tapAndWait(tester, find.text('确认恢复到本机'), find.textContaining('个分组（'));
 
     expect(find.textContaining('2 个分组（3 条分类归属）'), findsOneWidget);
+  });
+
+  testWidgets('Linux blocked restore explains preservation without success', (
+    tester,
+  ) async {
+    mockChannel(tester, open: _groupedBackupBytes());
+    await pumpPage(tester);
+    await tapAndWait(tester, find.text('从备份文件恢复'), find.text('分组'));
+    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+    try {
+      await tapAndWait(
+        tester,
+        find.text('确认恢复到本机'),
+        find.textContaining('Linux 安全恢复暂不可用'),
+      );
+      expect(find.textContaining('恢复完成：'), findsNothing);
+      expect(library.historySnapshot(), isEmpty);
+      expect(shelf.records(), isEmpty);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   testWidgets('help copy mentions shelf groups', (tester) async {

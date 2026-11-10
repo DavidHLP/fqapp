@@ -1,12 +1,14 @@
 import 'platform_channel.dart';
 import 'dart:isolate';
 
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/library_backup.dart';
 import 'ai_reading/ai_backup.dart';
 import 'ai_reading/ai_controller.dart';
 import 'library_store.dart';
+import 'linux_library_recovery.dart';
+import 'linux_profile_ownership.dart';
 import 'shelf_group_store.dart';
 import 'shelf_store.dart';
 
@@ -93,6 +95,7 @@ class LibraryBackupService {
       AiBackupService.instance.bookIdsWithAssets();
 
   Future<AiBackupRestoreResult?> restoreAi(LibraryBackup backup) async {
+    _requireSafeRestore();
     final ai = backup.aiData;
     if (ai == null || ai.isEmpty) return null;
     await AiReadingController.instance.init();
@@ -123,6 +126,7 @@ class LibraryBackupService {
 
   Future<({int shelf, int history, int episodes, int groups, int assignments})>
   restore(LibraryBackup backup) async {
+    _requireSafeRestore();
     if (!LibraryStore.instance.isInitialized || !ShelfStore.instance.isReady) {
       throw StateError('本机数据尚未初始化');
     }
@@ -161,5 +165,13 @@ class LibraryBackupService {
       groups: merge.groups,
       assignments: merge.assignments,
     );
+  }
+
+  static void _requireSafeRestore() {
+    if (defaultTargetPlatform != TargetPlatform.linux) return;
+    LinuxProfileOwnership.requireCurrent().requireHeld();
+    // The process lock cannot quiesce this process's store queues. Until the
+    // lifecycle owns that boundary, refuse rather than copy live Hive files.
+    throw const LinuxLibraryRestoreBlocked();
   }
 }

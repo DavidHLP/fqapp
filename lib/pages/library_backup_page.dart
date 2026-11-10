@@ -19,6 +19,7 @@ import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../models/library_backup.dart';
 import '../services/library_backup_service.dart';
+import '../services/linux_library_recovery.dart';
 import '../services/shelf_group_store.dart';
 import '../widgets/wenku/wenku_ui.dart';
 import 'ai_reading/settings/ai_settings_widgets.dart';
@@ -57,7 +58,9 @@ class _LibraryBackupPageState extends State<LibraryBackupPage> {
       if (!mounted) return;
       setState(() {
         _error = true;
-        _message = restoring
+        _message = error is LinuxLibraryRestoreBlocked
+            ? error.toString()
+            : restoring
             ? '恢复未完成，部分记录可能已写入。可重试同一文件，已存在的数据会保留。'
             : switch (error) {
                 FormatException() => error.message,
@@ -357,7 +360,8 @@ class _LibraryBackupPageState extends State<LibraryBackupPage> {
                   AppText(
                     '包含在线小说、听书、漫画、短剧和漫剧的收藏、已保存进度、'
                     '已看剧集与书架分组。\n\n'
-                    '本地 TXT / EPUB 原文件、下载缓存、阅读时长、划线和应用设置需另行保留。\n\n'
+                    '本地 TXT / EPUB 原文件及其书架进度、字体文件、下载缓存、阅读时长、书签、划线和应用设置需另行保留。'
+                    '不包含 API Key、账号凭证或系统密钥；这不是全量资料快照。\n\n'
                     '导出前请退出阅读或暂停播放，让当前进度保存；换手机时传输备份文件，再在这里恢复。',
                     style: muted.copyWith(fontSize: 13),
                   ),
