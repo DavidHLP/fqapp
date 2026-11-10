@@ -162,3 +162,16 @@ restart and provider late-write/crash acceptance (synthetic-key Rust child tests
 are narrower); VM power-loss recovery; other-platform runtime; remote CI;
 complete asset redistribution/license and corresponding external-source audit,
 signature/release approval. Compilation cannot close these gates.
+
+Runtime merger closeout: release/analyze/Cargo/native/full Flutter/independent FFI
+and Wayland completed at `683d1b2` (full 3515 passed/3 original skips, unique3518;
+FFI9 zero skip). XWayland and X11 then passed six each while the primary agent
+advanced the shared branch through `cd17455` and `4e5fe09` packaging/CI changes.
+Runtime/Dart/Rust sources were unchanged across those commits, but this is not
+an all-checks-on-current-HEAD claim. `final-candidate/` still binds **683d1b2**,
+so it is now an **older candidate**, not the final package for the shared branch.
+Per primary-agent direction, no repeated full cycle or newer review integration
+was undertaken; final integration/review fixes and repackaging follow separately.
+`merge-runtime-final-handoff.md` records exact identities and per-command bounds.
+Final-head CookieManager checks passed on all three virtual sessions; no official
+account or physical acceptance is inferred. The earlier X11 stall remains visible.
