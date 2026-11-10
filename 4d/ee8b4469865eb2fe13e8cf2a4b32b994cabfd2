@@ -1,0 +1,21 @@
+.github/workflows/linux.yml
+  s_e90db3094d490d::t_6b7eda60a1ea53 74-75
+LINUX.md
+  s_e90db3094d490d::t_3117eb4803a49c 26-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4dee8b4469865eb2fe13e8cf2a4b32b994cabfd2",
+  "prompts": {},
+  "sessions": {
+    "s_e90db3094d490d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c570-b8ef-7480-ae28-4249f6b84741",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
