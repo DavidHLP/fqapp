@@ -1,0 +1,21 @@
+docs/linux/IMPLEMENTATION-STATUS.md
+  s_e90db3094d490d::t_0c448a165f7e9c 38-41
+scripts/build_linux_package.sh
+  s_e90db3094d490d::t_229d2379e1b8db 80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e35fb788fc9cb133a8d0ebc568ee51fbd956a9aa",
+  "prompts": {},
+  "sessions": {
+    "s_e90db3094d490d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c570-b8ef-7480-ae28-4249f6b84741",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
