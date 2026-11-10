@@ -115,7 +115,9 @@ requires ownership and leaves a fresh runtime pool absent until real key
 confirmation; unknown existing pools without a key still refuse startup without
 changing bytes. No production fake key, relaxed guard, or removed assertion.
 The caller fixture retains its synthetic registered devices. Its listener now
-uses a system-assigned available port; runtime HOME assertions honor TMPDIR.
+uses a system-assigned available port; runtime HOME assertions and evidence
+output honor TMPDIR. A previous hard-coded /tmp evidence directory hit quota
+before session startup; those failed attempts remain in the logs.
 
 Executed integration evidence: full analyze clean; full Flutter **3515 passed,
 0 failed, 3 original skips**, **3518 unique behaviors**; independent real FFI
