@@ -105,3 +105,58 @@ account/Secret Service acceptance, VM power loss, physical ENOSPC/EACCES,
 clean install/upgrade/rollback, remote CI or release approval was performed.
 Automated regression/build success does not establish those gates or complete
 the migration task graph. No push, PR, watch or delegation in this batch.
+
+## Runtime + first-start final candidate integration (2026-11-10)
+
+Complete ordered runtime/first-start cherry-picks `2149f7b` and `ca3c6b9`
+landed as `ea48158` and `8ec6691`, on clean `417eba1`. Recovery close-drain
+and shared-directory permission fixes remain ancestors. Linux deployment now
+requires ownership and leaves a fresh runtime pool absent until real key
+confirmation; unknown existing pools without a key still refuse startup without
+changing bytes. No production fake key, relaxed guard, or removed assertion.
+The caller fixture retains its synthetic registered devices. Its listener now
+uses a system-assigned available port; runtime HOME assertions honor TMPDIR.
+
+Executed integration evidence: full analyze clean; full Flutter **3515 passed,
+0 failed, 3 original skips**, **3518 unique behaviors**; independent real FFI
+**9 passed, 0 failed, 0 skipped** (overlaps full suite); Cargo **262 passed,
+0 failed, 2 original live-upstream ignored**; four-file native regression
+**102 passed, 0 skipped**; existing C++ bridge boundary test **1 passed**;
+Linux release and independent neutral-path release builds succeeded.
+Original skips/ignored cases remain unexecuted, not passes.
+
+Original six-test runtime suite completed on each of native Wayland and
+XWayland (headless Weston) and X11 (Xvfb/Openbox), each with new HOME/XDG,
+private D-Bus, real isolated gnome-keyring, synthetic media and null audio.
+Production fresh startup runs before the separately provisioned diagnostic:
+it passed without a pre-injected pool key. Reading/import, real texture first
+frame/clock/pause/seek, MPRIS, production PlayerPage entry, native TTS
+completion/cancel/replacement/daemon disconnect and capability/inhibit release
+assertions ran. These are software-rendered virtual sessions; lifecycle events
+are injected Flutter inputs. They do not establish physical GPU, audible output,
+actual minimize/lock/suspend or physical idle inhibition. Native Wayland reports
+lockEvents=false, leaving the lock-related contract open.
+
+An initial X11 attempt stalled after media/MPRIS evidence, before entry.txt,
+and was terminated after verifying its task-owned PID/command/HOME. Its failure
+is retained; a fresh bounded retry passed all six. Intermittent disposal/entry
+stall is not proven fixed. Final-head reruns and any failures are recorded in
+`merge-runtime-final-handoff.md` and `merge-runtime-final-logs/`; those records
+bind exact commit/tree, commands, unique counts and package hashes. Supporting
+pre-document runs remain in `merge-runtime-logs/` and are not added to totals.
+
+Candidate output is `arch-linux-2026-11-10/final-candidate/`, built with current
+packaging scripts from a neutral checkout at the documented final HEAD, with
+exact git source archive. Dependency prefixes are command environment only,
+not installed dependencies or package RUNPATH. This is a draft candidate,
+not a release; pending code review changes require renewed validation/build
+and source/package binding. No push/PR/watch/publication was performed.
+
+Open gates: independent code review disposition; clean Arch install/upgrade/
+downgrade/rollback and real ENOSPC/EACCES; official account login/bookshelf/
+history acceptance; full four-media lifecycle matrix and physical lock/suspend;
+real audio/GPU hardware; combined real-provider NEW-process Hive/encrypted-pool
+restart and provider late-write/crash acceptance (synthetic-key Rust child tests
+are narrower); VM power-loss recovery; other-platform runtime; remote CI;
+complete asset redistribution/license and corresponding external-source audit,
+signature/release approval. Compilation cannot close these gates.
