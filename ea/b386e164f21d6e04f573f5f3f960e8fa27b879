@@ -1,0 +1,19 @@
+rust/src/device/persistence_tests.rs
+  s_f7cb0d2a786d07::t_252cd071e057d9 26-35,145,207,273,351
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "eab386e164f21d6e04f573f5f3f960e8fa27b879",
+  "prompts": {},
+  "sessions": {
+    "s_f7cb0d2a786d07": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c58e-47e1-79f3-9d79-b77cb94d549c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
