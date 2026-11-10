@@ -44,8 +44,10 @@ class ReleaseInputsTest(unittest.TestCase):
                          "user.email=test@example.invalid", "commit", "-qm", "fixture")
 
     def run_command(self, *args, **kwargs):
-        return subprocess.run(args, cwd=self.root, check=True,
-                              capture_output=True, text=True, **kwargs)
+        result = subprocess.run(args, cwd=self.root,
+                                capture_output=True, text=True, **kwargs)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result
 
     def test_untracked_and_ignored_assets_are_rejected(self):
         for name in ("untracked.json", "ignored.private"):
@@ -72,6 +74,7 @@ out.mkdir(parents=True)
 ''')
         flutter.chmod(0o755)
         env = os.environ.copy()
+        env.setdefault("CARGO_HOME", str(Path.home() / ".cargo"))
         env.update(PATH=str(tools) + os.pathsep + env["PATH"],
                    HOME=str(Path(self.temp.name) / "home with spaces"),
                    FLUTTER_ROOT=str(tools), PUB_CACHE=str(tools),
