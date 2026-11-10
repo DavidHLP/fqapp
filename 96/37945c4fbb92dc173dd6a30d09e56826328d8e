@@ -1,0 +1,19 @@
+rust/src/api/mod.rs
+  s_f7cb0d2a786d07::t_d30e75e98b20d6 767-768
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9637945c4fbb92dc173dd6a30d09e56826328d8e",
+  "prompts": {},
+  "sessions": {
+    "s_f7cb0d2a786d07": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c58e-47e1-79f3-9d79-b77cb94d549c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
