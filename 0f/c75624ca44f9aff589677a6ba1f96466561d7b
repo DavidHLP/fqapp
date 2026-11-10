@@ -1,0 +1,21 @@
+integration_test/linux_runtime_test.dart
+  s_9bcb066a8c75ae::t_5c13ef861139d5 72-75
+test/rust_host_integration_test.dart
+  s_9bcb066a8c75ae::t_bb7822d7152a5d 111-113,152-216,295-317,319-336,338-350,352-368,370-409,413-421,423-429,431-433,437,440,444
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0fc75624ca44f9aff589677a6ba1f96466561d7b",
+  "prompts": {},
+  "sessions": {
+    "s_9bcb066a8c75ae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c59c-2375-7850-8796-0a90c9342b15",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
