@@ -1,0 +1,19 @@
+docs/agents/issue-tracker.md
+  s_73a14774e35879::t_27b2ffde19c68a 1-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8f8c9ec8a94f810789772277fc66e9e9189a1a18",
+  "prompts": {},
+  "sessions": {
+    "s_73a14774e35879": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c43b-e348-7d01-b834-096a8f29cf29",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
