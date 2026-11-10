@@ -1,3 +1,5 @@
+import 'package:fqapp/services/encrypted_hive.dart';
+import 'support/synthetic_profile.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -83,7 +85,7 @@ void main() {
     final directory = await Directory.systemTemp.createTemp(
       'fqapp-rank-cache-test-',
     );
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
   });
 
   tearDown(() async {
@@ -128,7 +130,7 @@ void main() {
         .id, 'a');
 
     // Rewrite savedAt past the stale bound through the same box.
-    final box = await Hive.openBox<dynamic>('rank_cache_v1');
+    final box = await EncryptedHive.openBox<dynamic>(Hive, 'rank_cache_v1');
     final raw = Map<String, dynamic>.from(box.get('r1|5|0') as Map);
     raw['savedAt'] =
         DateTime.now().millisecondsSinceEpoch -
@@ -141,7 +143,7 @@ void main() {
   test('写入会淘汰过期榜单并限制榜单键数', () async {
     RankCache.hiveReady = true;
     final writer = RankCache();
-    final box = await Hive.openBox<dynamic>('rank_cache_v1');
+    final box = await EncryptedHive.openBox<dynamic>(Hive, 'rank_cache_v1');
     await box.clear();
     final board = RankBoard(entries: [_entry('a', 1)], hasMore: true);
 

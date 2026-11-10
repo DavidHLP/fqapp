@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -207,7 +208,7 @@ void main() {
     // 冷启动恢复，必须先清掉。
     DramaChannelPreferences.reset();
     _hiveDir = await Directory.systemTemp.createTemp('fqapp-drama-test-');
-    Hive.init(_hiveDir.path);
+    await initSyntheticHive(_hiveDir.path);
     // 生产 config.json 发新底栏（use_new_player_bottom_style=true）；测试
     // 默认值是旧栏，而旧栏在 o.W7() 下进页即清屏，会压掉播放页右栏断言。
     PlayerStyleConfig.instance = const PlayerStyleConfig(
@@ -235,7 +236,7 @@ void main() {
     }
   });
 
-  testWidgets('短剧频道与完整播放页移除追剧点赞分享，播放与选集仍可用', (tester) async {
+  syntheticWidgetTest('短剧频道与完整播放页移除追剧点赞分享，播放与选集仍可用', (tester) async {
     SharedPreferences.setMockInitialValues({});
     const nativeChannel = MethodChannel('fqapp/native_player');
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -375,7 +376,7 @@ void main() {
 
   // P1-15：feed 的 inactive（通知栏/控制中心）继续播，hidden 暂停，
   // resumed 恢复。参考 audio_page_test 的 lifecycle 循环写法。
-  testWidgets('feed keeps playing through inactive, pauses on hidden', (
+  syntheticWidgetTest('feed keeps playing through inactive, pauses on hidden', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -428,7 +429,7 @@ void main() {
   // 与上面同一条生命周期链，但起点是**用户手动暂停**：退到后台再回来
   // 不许把这次暂停当成可见性暂停撤销。桌面端已有同款用例；Android 的回
   // 前台续播此前无条件执行，同样会推翻手动暂停。
-  testWidgets('feed：手动暂停后切后台再回来不许自动续播', (tester) async {
+  syntheticWidgetTest('feed：手动暂停后切后台再回来不许自动续播', (tester) async {
     SharedPreferences.setMockInitialValues({});
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     await tester.binding.setSurfaceSize(const Size(360, 800));
@@ -484,7 +485,7 @@ void main() {
   // pause() 会把会话意图置假，但当时没有在播的播放器可记账。此前 Android
   // 回前台无条件续播掩盖了这个空洞；只认「可见性暂停」后，若不把激活中的
   // 意图也记账，回前台就没人把意图置真，激活收尾时跳过 play，卡片冻住。
-  testWidgets('feed：激活未完成时切后台，回来仍自动续播', (tester) async {
+  syntheticWidgetTest('feed：激活未完成时切后台，回来仍自动续播', (tester) async {
     SharedPreferences.setMockInitialValues({});
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     await tester.binding.setSurfaceSize(const Size(360, 800));
@@ -538,7 +539,7 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
-  testWidgets('the feed shows the official chrome and one full-screen card', (
+  syntheticWidgetTest('the feed shows the official chrome and one full-screen card', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
@@ -612,7 +613,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('频道条按首页留白，标签切换沿用首页放大动画', (tester) async {
+  syntheticWidgetTest('频道条按首页留白，标签切换沿用首页放大动画', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -654,7 +655,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('大字号下频道条随选中字号长高，不撞破搜索框', (tester) async {
+  syntheticWidgetTest('大字号下频道条随选中字号长高，不撞破搜索框', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -685,7 +686,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('冷启动回到上次看的频道，搜索占位跟着频道语境', (tester) async {
+  syntheticWidgetTest('冷启动回到上次看的频道，搜索占位跟着频道语境', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -713,7 +714,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('上次频道不在本地表里就回落到推荐', (tester) async {
+  syntheticWidgetTest('上次频道不在本地表里就回落到推荐', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -732,7 +733,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('频道条把选中项滚进视口，切换后写回 SP', (tester) async {
+  syntheticWidgetTest('频道条把选中项滚进视口，切换后写回 SP', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -788,7 +789,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('分区搜索带上频道语境：漫剧频道落漫剧分类', (tester) async {
+  syntheticWidgetTest('分区搜索带上频道语境：漫剧频道落漫剧分类', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -827,7 +828,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('上滑引导换频道立即收起，且每台设备只弹一次', (tester) async {
+  syntheticWidgetTest('上滑引导换频道立即收起，且每台设备只弹一次', (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 850));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -861,7 +862,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('上滑引导已显示过就不再出现', (tester) async {
+  syntheticWidgetTest('上滑引导已显示过就不再出现', (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 850));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -875,7 +876,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
+  syntheticWidgetTest(
     'swiping up reveals the next drama and switching channels swaps the feed',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(360, 800));
@@ -907,7 +908,7 @@ void main() {
     },
   );
 
-  testWidgets('a failed feed shows the official error copy and retries', (
+  syntheticWidgetTest('a failed feed shows the official error copy and retries', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
@@ -956,7 +957,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('全屏观看 loads the series directory before playing', (tester) async {
+  syntheticWidgetTest('全屏观看 loads the series directory before playing', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1008,7 +1009,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('单击画面只切换播放/暂停，不进任何页面', (tester) async {
+  syntheticWidgetTest('单击画面只切换播放/暂停，不进任何页面', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1053,7 +1054,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('信息面板：药丸按集数出文案，chip 与简介可展开', (tester) async {
+  syntheticWidgetTest('信息面板：药丸按集数出文案，chip 与简介可展开', (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 850));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1085,7 +1086,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the bottom bar lists 短剧 right after 首页', (tester) async {
+  syntheticWidgetTest('the bottom bar lists 短剧 right after 首页', (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => dramaLightPageNotifier.value = false);
@@ -1143,7 +1144,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
+  syntheticWidgetTest(
     '最近 tab：官方筛选 chips、漫剧角标与已看到第N集',
     timeout: Timeout(const Duration(minutes: 1)),
     (tester) async {
@@ -1264,7 +1265,7 @@ void main() {
     },
   );
 
-  testWidgets(
+  syntheticWidgetTest(
     '收藏 tab：官方筛选行与编辑/删除（VideoCollectionDeliveryFragmentImpl 形态）',
     timeout: Timeout(const Duration(minutes: 1)),
     (tester) async {
@@ -1348,7 +1349,7 @@ void main() {
     },
   );
 
-  testWidgets('服务端频道表替换本地频道条（F08）', (tester) async {
+  syntheticWidgetTest('服务端频道表替换本地频道条（F08）', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1379,7 +1380,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('服务端把同一频道下发两次时，频道条只留一个标签', (tester) async {
+  syntheticWidgetTest('服务端把同一频道下发两次时，频道条只留一个标签', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1411,7 +1412,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('被名字兼顶拦下的那条不能白占频道身份', (tester) async {
+  syntheticWidgetTest('被名字兼顶拦下的那条不能白占频道身份', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1443,7 +1444,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('服务端频道表替换后，预览不能拿旧快照的新形态画', (tester) async {
+  syntheticWidgetTest('服务端频道表替换后，预览不能拿旧快照的新形态画', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1493,7 +1494,7 @@ void main() {
     expect(tester.takeException(), isNull, reason: '旧快照的列数被新频道拿去画了');
   });
 
-  testWidgets('服务端频道表取不到时保留本地表', (tester) async {
+  syntheticWidgetTest('服务端频道表取不到时保留本地表', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1514,7 +1515,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('频道表加载失败时保留本地表且不抛异常', (tester) async {
+  syntheticWidgetTest('频道表加载失败时保留本地表且不抛异常', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1533,7 +1534,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('只映射出一个频道时不替换整条栏', (tester) async {
+  syntheticWidgetTest('只映射出一个频道时不替换整条栏', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1556,7 +1557,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('书城语境的频道条不替换（16 被叫「视频」）', (tester) async {
+  syntheticWidgetTest('书城语境的频道条不替换（16 被叫「视频」）', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1587,7 +1588,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('映射不到的类型被丢掉，可映射的仍生效', (tester) async {
+  syntheticWidgetTest('映射不到的类型被丢掉，可映射的仍生效', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1615,7 +1616,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('漫剧频道是三列海报格，不是竖滑播放流（官方 StaggeredFeedTab 形态）', (tester) async {
+  syntheticWidgetTest('漫剧频道是三列海报格，不是竖滑播放流（官方 StaggeredFeedTab 形态）', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1645,7 +1646,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('看剧频道是两列海报格，点击直接进播放页（官方 CommonDoubleRow 形态）', (tester) async {
+  syntheticWidgetTest('看剧频道是两列海报格，点击直接进播放页（官方 CommonDoubleRow 形态）', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1673,7 +1674,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('深色外观下看剧/漫剧的浅色页改成深色画布与浅色字', (tester) async {
+  syntheticWidgetTest('深色外观下看剧/漫剧的浅色页改成深色画布与浅色字', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1709,7 +1710,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('频道表替换后按 tab_type 续接当前频道（条与 feed 不能对不上）', (tester) async {
+  syntheticWidgetTest('频道表替换后按 tab_type 续接当前频道（条与 feed 不能对不上）', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -1739,7 +1740,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('首帧只加载选中频道的流，不再先打 provider 初始的短剧 tab', (tester) async {
+  syntheticWidgetTest('首帧只加载选中频道的流，不再先打 provider 初始的短剧 tab', (tester) async {
     // 2026-09-28 真机跳变复盘：initState 无条件 load() 打的是 provider
     // 出厂的 tabIndex=2（短剧，tab_type 8），而可见频道是推荐
     // （tabIndex=6，tab_type 16）——1~2s 后频道表回来 selectTab(6) 把
@@ -1786,7 +1787,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('feed 卡片标题行「剧名 >」进剧集详情页，点选集经目录推播放页', (tester) async {
+  syntheticWidgetTest('feed 卡片标题行「剧名 >」进剧集详情页，点选集经目录推播放页', (tester) async {
     // 官方 ql3/v0.a1()：feed 信息区标题点击 enter_from="title"，落点
     // series_detail（此前误接成播放/暂停，用户真机反馈点不动）。
     SharedPreferences.setMockInitialValues({});
@@ -1855,7 +1856,7 @@ void main() {
     expect(playerPage.initialSeriesDetail?.title, '2-0 作品');
   });
 
-  testWidgets('桌面宽屏 feed：停靠面板带选集与简介，标题栏剧名让位', (tester) async {
+  syntheticWidgetTest('桌面宽屏 feed：停靠面板带选集与简介，标题栏剧名让位', (tester) async {
     SharedPreferences.setMockInitialValues({});
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     await tester.binding.setSurfaceSize(const Size(1280, 800));
@@ -1881,7 +1882,7 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
-  testWidgets('桌面 feed 滚轮切剧：一次一集，600ms 冷却内不重复触发', (tester) async {
+  syntheticWidgetTest('桌面 feed 滚轮切剧：一次一集，600ms 冷却内不重复触发', (tester) async {
     SharedPreferences.setMockInitialValues({});
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     await tester.binding.setSurfaceSize(const Size(1280, 800));
@@ -1924,7 +1925,7 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
-  testWidgets('桌面 feed：手动暂停后切窗口/最小化再回来都不许自动恢复', (tester) async {
+  syntheticWidgetTest('桌面 feed：手动暂停后切窗口/最小化再回来都不许自动恢复', (tester) async {
     SharedPreferences.setMockInitialValues({});
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     await tester.binding.setSurfaceSize(const Size(1280, 800));
@@ -1986,7 +1987,7 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
-  testWidgets('桌面 feed：播放中被最小化是可见性暂停，切回自动恢复', (tester) async {
+  syntheticWidgetTest('桌面 feed：播放中被最小化是可见性暂停，切回自动恢复', (tester) async {
     SharedPreferences.setMockInitialValues({});
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     await tester.binding.setSurfaceSize(const Size(1280, 800));
@@ -2030,7 +2031,7 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
-  testWidgets('桌面窄窗 feed：不停靠面板，剧名回标题栏', (tester) async {
+  syntheticWidgetTest('桌面窄窗 feed：不停靠面板，剧名回标题栏', (tester) async {
     SharedPreferences.setMockInitialValues({});
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     await tester.binding.setSurfaceSize(const Size(900, 700));
@@ -2049,7 +2050,7 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
-  testWidgets('桌面全屏 feed：面板、顶栏与计数条都不出现', (tester) async {
+  syntheticWidgetTest('桌面全屏 feed：面板、顶栏与计数条都不出现', (tester) async {
     SharedPreferences.setMockInitialValues({});
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     DesktopPlatform.fullscreen.value = true;
@@ -2070,7 +2071,7 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
-  testWidgets('非桌面 feed 仍是竖向 PageView，无桌面计数条', (tester) async {
+  syntheticWidgetTest('非桌面 feed 仍是竖向 PageView，无桌面计数条', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -2084,7 +2085,7 @@ void main() {
     expect(find.text('1 / 2'), findsNothing);
   });
 
-  testWidgets('桌面 feed 顶栏只剩频道条一行，搜索入口收敛到频道条图标', (tester) async {
+  syntheticWidgetTest('桌面 feed 顶栏只剩频道条一行，搜索入口收敛到频道条图标', (tester) async {
     SharedPreferences.setMockInitialValues({});
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     await tester.binding.setSurfaceSize(const Size(1280, 800));
@@ -2109,7 +2110,7 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
-  testWidgets('横向手势在短剧频道之间切换', (tester) async {
+  syntheticWidgetTest('横向手势在短剧频道之间切换', (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -2154,7 +2155,7 @@ void main() {
     await _flush(tester);
   });
 
-  testWidgets('横滑中途邻页要真的画出来，不是一块底色', (tester) async {
+  syntheticWidgetTest('横滑中途邻页要真的画出来，不是一块底色', (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -2207,7 +2208,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('竖滑播放流里整片横滑都切频道，只剩进度条那一行调进度', (tester) async {
+  syntheticWidgetTest('竖滑播放流里整片横滑都切频道，只剩进度条那一行调进度', (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));

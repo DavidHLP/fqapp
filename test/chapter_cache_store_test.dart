@@ -1,3 +1,5 @@
+import 'package:fqapp/services/encrypted_hive.dart';
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -13,7 +15,7 @@ void main() {
     directory = await Directory.systemTemp.createTemp(
       'fqapp-chapter-cache-test-',
     );
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     keys = SecureKeyProvider(storage: InMemorySecureKeyStorage());
   });
   tearDown(() async {
@@ -125,7 +127,7 @@ void main() {
       await _write(store, 'x', '2', '正文二');
       // Another book's write evicts a chapter while 'x' still has text cached.
       await _write(store, 'x', '3', '正文三');
-      final box = Hive.box('chapter_cache_catalog_v1_enc');
+      final box = EncryptedHive.box(Hive, 'chapter_cache_catalog_v1_enc');
       // A catalogue survives while any of its chapters is still cached.
       expect(box.containsKey('book:x'), isTrue);
       // The interrupted download of 'a' resumes and fills its chapters.
@@ -175,7 +177,7 @@ void main() {
       final store = ChapterCacheStore(keys: keys, maxBytes: 8);
       await store.saveBook(_book('a'));
       await store.read(bookId: 'a', chapterId: '__open__');
-      final box = Hive.box('chapter_cache_v1_enc');
+      final box = EncryptedHive.box(Hive, 'chapter_cache_v1_enc');
       await box.put('chapter:["a","same"]', {
         'bookId': 'a',
         'chapterId': 'same',
@@ -199,7 +201,7 @@ void main() {
       final store = ChapterCacheStore(keys: keys, maxBytes: 8);
       await store.saveBook(_book('a'));
       await store.read(bookId: 'a', chapterId: '__open__');
-      final box = Hive.box('chapter_cache_v1_enc');
+      final box = EncryptedHive.box(Hive, 'chapter_cache_v1_enc');
       // 1000 个汉字：UTF-16 长度 1000，真实 UTF-8 是 3000 字节。旧的
       // [len, len*3] 校验会把这个少报的 len 当成合法测量值，容量上限失效。
       await box.put('chapter:["a","same"]', {
@@ -219,7 +221,7 @@ void main() {
       final store = ChapterCacheStore(keys: keys);
       await store.saveBook(_book('a'));
       await store.read(bookId: 'a', chapterId: '__open__');
-      final box = Hive.box('chapter_cache_v1_enc');
+      final box = EncryptedHive.box(Hive, 'chapter_cache_v1_enc');
       await box.put('chapter:["a","same"]', {
         'bookId': 'a',
         'chapterId': 'same',
@@ -239,7 +241,7 @@ void main() {
       await store.saveBook(_book('ab'));
       await _write(store, 'ab', 'same', 'Unrelated content');
       await store.read(bookId: 'a', chapterId: '__open__');
-      final box = Hive.box('chapter_cache_v1_enc');
+      final box = EncryptedHive.box(Hive, 'chapter_cache_v1_enc');
       await box.put('chapter:["a","same"]', {'text': 42});
       await box.put('chapter:["a","truncated"]', 'truncated data');
       await store.clear(bookId: 'a');

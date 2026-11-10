@@ -37,7 +37,9 @@ void main() {
         storageTimeout: const Duration(milliseconds: 20),
       );
       final first = provider();
-      expect(await first.getOrCreateKey(), isNull);
+      final pending = first.getOrCreateKey();
+      await store.started.future.timeout(const Duration(seconds: 2));
+      expect(await pending, isNull);
       expect(await provider().getOrCreateKey(), isNull);
       expect(store.writes, 1);
       expect(
@@ -146,8 +148,15 @@ void main() {
         ownership: owner,
         storageTimeout: const Duration(milliseconds: 20),
       );
-      expect(await provider.getOrCreateKey(), isNull);
-      expect(await provider.devicePoolKey(), List.filled(32, 5));
+      final pending = provider.getOrCreateKey();
+      await store.started.future.timeout(const Duration(seconds: 2));
+      expect(await pending, isNull);
+      final confirmed = SecureKeyProvider(
+        storage: store,
+        strictLinux: true,
+        ownership: owner,
+      );
+      expect(await confirmed.devicePoolKey(), List.filled(32, 5));
       store.finish.complete();
       await SecureKeyProvider.settlePendingOperations();
     },
@@ -220,17 +229,20 @@ void main() {
     expect(stopwatch.elapsedMilliseconds, lessThan(5000));
   });
 
-  test('a failed load is cached: the next lookup returns null at once', () async {
-    final provider = SecureKeyProvider(
-      storage: _HangingStorage(),
-      storageTimeout: const Duration(milliseconds: 100),
-    );
-    expect(await provider.getOrCreateKey(), isNull);
-    final stopwatch = Stopwatch()..start();
-    expect(await provider.getOrCreateKey(), isNull);
-    // Would take another full timeout if the failure were not cached.
-    expect(stopwatch.elapsedMilliseconds, lessThan(50));
-  });
+  test(
+    'a failed load is cached: the next lookup returns null at once',
+    () async {
+      final provider = SecureKeyProvider(
+        storage: _HangingStorage(),
+        storageTimeout: const Duration(milliseconds: 100),
+      );
+      expect(await provider.getOrCreateKey(), isNull);
+      final stopwatch = Stopwatch()..start();
+      expect(await provider.getOrCreateKey(), isNull);
+      // Would take another full timeout if the failure were not cached.
+      expect(stopwatch.elapsedMilliseconds, lessThan(50));
+    },
+  );
 
   test('a throwing store degrades to null', () async {
     final provider = SecureKeyProvider(
@@ -265,8 +277,7 @@ class _HangingStorage implements SecureKeyStorage {
   Future<String?> read(String key) => Completer<String?>().future;
 
   @override
-  Future<void> write(String key, String value) =>
-      Completer<void>().future;
+  Future<void> write(String key, String value) => Completer<void>().future;
 
   @override
   Future<void> delete(String key) => Completer<void>().future;

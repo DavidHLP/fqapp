@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -28,7 +29,7 @@ void main() {
       AppLifecycleState.resumed,
     );
     directory = await Directory.systemTemp.createTemp('fqapp-reader-shelf-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     await LibraryStore.instance.init();
     await ShelfStore.instance.init();
   });
@@ -46,7 +47,8 @@ void main() {
     }
   });
 
-  testWidgets('小说阅读器里可以直接加入/移出书架', (tester) async {
+  syntheticWidgetTest('小说阅读器里可以直接加入/移出书架', (tester) async {
+    addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
     await tester.pumpWidget(
       MaterialApp(
         home: ReaderPage(
@@ -87,7 +89,8 @@ void main() {
     expect(tester.widget<GlassMenuItem>(button).label, '加入书架');
   });
 
-  testWidgets('漫画阅读器里可以直接加入书架', (tester) async {
+  syntheticWidgetTest('漫画阅读器里可以直接加入书架', (tester) async {
+    addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
     await tester.pumpWidget(
       MaterialApp(
         home: ComicReaderPage(

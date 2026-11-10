@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -207,7 +208,7 @@ void main() {
           (call) async => null,
         );
     _hiveDir = await Directory.systemTemp.createTemp('fqapp-drama-inline-');
-    Hive.init(_hiveDir.path);
+    await initSyntheticHive(_hiveDir.path);
     await ShelfStore.instance.init();
     // The card's 点赞 button writes the same kind of local box.
     await DiggStore.instance.init();

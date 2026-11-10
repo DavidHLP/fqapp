@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -23,7 +24,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     ShelfViewStore.instance.resetForTest();
     directory = await Directory.systemTemp.createTemp('fqapp-ui-preferences-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     final history = await Hive.openBox<dynamic>('history');
     await history.put('preserved-book', {
       'id': 'preserved-book',

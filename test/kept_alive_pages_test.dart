@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -23,7 +24,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     ShelfViewStore.instance.resetForTest();
     directory = await Directory.systemTemp.createTemp('fqapp-visible-pages-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     await store.init();
   });
 

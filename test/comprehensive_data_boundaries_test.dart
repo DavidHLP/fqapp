@@ -1,3 +1,7 @@
+import 'package:fqapp/services/audio_download_store.dart';
+import 'package:fqapp/services/ai_reading/ai_controller.dart';
+import 'package:fqapp/services/encrypted_hive.dart';
+import 'support/synthetic_profile.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -45,9 +49,9 @@ void main() {
         };
         await tester.runAsync(() async {
           directory = await tempRoot.createTemp('fqapp-theme-boundary-');
-          Hive.init(directory.path);
-          final history = await Hive.openBox<dynamic>('history');
-          await Hive.openBox<dynamic>('read_time');
+          await initSyntheticHive(directory.path);
+          final history = await EncryptedHive.openBox<dynamic>(Hive, 'history');
+          await EncryptedHive.openBox<dynamic>(Hive, 'read_time');
           // The bootstrap also opens the 加入书架 box; pre-opening it here keeps
           // that openBox off the widget test's fake-async file I/O path, which
           // would never complete.
@@ -62,15 +66,17 @@ void main() {
           await SwipeGuideStore.instance.init();
           await SwipeGuideStore.instance.markShown();
           // 首页 feed 的冷启动缓存 box 与榜单缓存 box 也在 bootstrap 里开箱。
-          await Hive.openBox<dynamic>('home_feed_cache_v1');
-          await Hive.openBox<dynamic>('rank_cache_v1');
+          await EncryptedHive.openBox<dynamic>(Hive, 'home_feed_cache_v1');
+          await EncryptedHive.openBox<dynamic>(Hive, 'rank_cache_v1');
           // 已看集 box 也在 LibraryStore.init 里开箱（F07），同样要预开。
-          await Hive.openBox<dynamic>('watched_episodes');
+          await EncryptedHive.openBox<dynamic>(Hive, 'watched_episodes');
           // 短剧离线缓存的记录箱随 bootstrap 预热（F08），同样要预开。
-          await Hive.openBox<dynamic>('drama_download_v1');
+          await EncryptedHive.openBox<dynamic>(Hive, 'drama_download_v1');
           // 预热同时跑完 P1-4 的 keyHex 迁移：首次开盒会写迁移 marker，
           // 写盘 I/O 同样不能落在 widget 测试的 fake-async 路径上。
           await HiveDramaDownloadStore.instance.warmUp();
+          await HiveAudioDownloadStore.instance.warmUp();
+          await AiReadingController.instance.init();
           // 官方播放页开关在 bootstrap 里从 config.json 读取；提前读好，
           // 避免 bundle 加载落在 widget 测试的 fake-async 路径上。
           await PlayerStyleConfig.load();
@@ -92,15 +98,33 @@ void main() {
             if (directory.absolute.parent.path != tempRoot.path) {
               throw StateError('Temporary directory escaped its parent');
             }
+            await closeSyntheticProfile();
             await directory.delete(recursive: true);
           });
         });
+
+        const connectivity = MethodChannel(
+          'dev.fluttercommunity.plus/connectivity_status',
+        );
+        messenger.setMockMethodCallHandler(connectivity, (_) async => null);
+        addTearDown(
+          () => messenger.setMockMethodCallHandler(connectivity, null),
+        );
 
         await tester.pumpWidget(
           const MaterialApp(
             home: app.AppBootstrap(child: Text('local data ready')),
           ),
         );
+        // Let real disk work finish while still pumping the bootstrap frame.
+        await tester.runAsync(() async {
+          final deadline = DateTime.now().add(const Duration(seconds: 10));
+          while (find.text('local data ready').evaluate().isEmpty &&
+              DateTime.now().isBefore(deadline)) {
+            await Future<void>.delayed(const Duration(milliseconds: 20));
+            await tester.pump();
+          }
+        });
         await tester.pumpAndSettle();
 
         expect(find.text('local data ready'), findsOneWidget);
@@ -125,7 +149,7 @@ void main() {
 
     setUp(() async {
       directory = await tempRoot.createTemp('fqapp-migration-clear-');
-      Hive.init(directory.path);
+      await initSyntheticHive(directory.path);
       final oversizedId = 'x' * 256;
       // Hive rejects the oversized key after an earlier valid entry has been
       // persisted. This is an actual partial migration, with no fake store.

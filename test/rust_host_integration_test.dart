@@ -1,3 +1,5 @@
+import 'support/synthetic_profile.dart';
+import 'package:fqapp/services/secure_key_provider.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -91,8 +93,16 @@ void main() {
     await mock.close(force: true);
   });
 
-  setUp(() {
+  setUp(() async {
     root = Directory.systemTemp.createTempSync('fqapp-rust-host-');
+    addTearDown(() async {
+      if (root.existsSync()) await root.delete(recursive: true);
+    });
+    await syntheticProfile(root);
+    addTearDown(rust.shutdown);
+    final key = await SecureKeyProvider.instance.devicePoolKey();
+    if (key == null) throw StateError('synthetic pool key unavailable');
+    await rust.setDevicePoolKey(key: key);
     Directory('${root.path}/config').createSync(recursive: true);
     Directory('${root.path}/src').createSync(recursive: true);
     File('${root.path}/config/config.json').writeAsStringSync(
@@ -105,15 +115,6 @@ void main() {
     mockRequests.clear();
     mockDelay = Duration.zero;
     mockPayload = '{"code":0,"data":{"served_by":"mock-upstream"}}';
-  });
-
-  tearDown(() async {
-    await rust.shutdown();
-    try {
-      root.deleteSync(recursive: true);
-    } on FileSystemException {
-      // A dropped handle must not turn a passing test red.
-    }
   });
 
   Future<String> startCore({String? origin, int port = 0}) => rust.init(

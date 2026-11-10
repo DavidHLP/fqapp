@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 import 'dart:ui' show Tristate;
 
@@ -22,7 +23,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     directory = await Directory.systemTemp.createTemp('fqapp-shelf-visual-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     await LibraryStore.instance.init();
     await ShelfStore.instance.init();
   });

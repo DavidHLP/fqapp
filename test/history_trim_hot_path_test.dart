@@ -1,3 +1,5 @@
+import 'package:fqapp/services/encrypted_hive.dart';
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -17,7 +19,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     directory = await Directory.systemTemp.createTemp('fqapp-history-trim-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
   });
 
   tearDown(() async {
@@ -29,7 +31,7 @@ void main() {
     'imported history does not force a snapshot rebuild on every write',
     () async {
       await store.init();
-      final history = Hive.box('history');
+      final history = EncryptedHive.box(Hive, 'history');
       await history.putAll({
         for (var index = 0; index < 200; index++)
           'imported-$index': {
@@ -49,7 +51,7 @@ void main() {
 
   test('local history still trims to 50 despite imported records', () async {
     await store.init();
-    final history = Hive.box('history');
+    final history = EncryptedHive.box(Hive, 'history');
     await history.putAll({
       for (var index = 0; index < 200; index++)
         'imported-$index': {

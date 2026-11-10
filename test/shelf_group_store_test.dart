@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -16,7 +17,7 @@ void main() {
 
   setUp(() async {
     directory = await Directory.systemTemp.createTemp('fqapp-group-test-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     store.maxVisibleGroups = 100;
     store.maxGroupRecords = ShelfGroupStore.hardMaxGroupRecords;
     store.maxAssignments = ShelfGroupStore.hardMaxAssignments;
@@ -451,8 +452,7 @@ void main() {
       await store.init();
       expect(store.groups, isEmpty);
 
-      final reopened = EncryptedHive.box<dynamic>(
-        Hive,
+      final reopened = EncryptedHive.box<dynamic>(Hive,
         ShelfGroupStore.boxName,
       );
       final quarantined = reopened.keys.where(

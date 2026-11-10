@@ -1,3 +1,5 @@
+import 'package:fqapp/services/encrypted_hive.dart';
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -18,7 +20,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     directory = await Directory.systemTemp.createTemp('fqapp-history-clear-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     await store.init();
   });
 
@@ -58,7 +60,7 @@ void main() {
   for (final kind in ['audio', 'video', 'manju']) {
     for (final clearAll in [false, true]) {
       test('$kind clear during statistics write (all: $clearAll)', () async {
-        final readingTime = Hive.box('read_time');
+        final readingTime = EncryptedHive.box(Hive, 'read_time');
         final oldKey = _hasAudioScope(kind) ? 'audio:old' : 'old';
         final written = readingTime.watch(key: oldKey).first;
         final saved = _save(store, kind, 'old');
@@ -109,7 +111,7 @@ void main() {
     test(
       '$kind legacy progress copy cannot cross the clear boundary',
       () async {
-        await Hive.box(
+        await EncryptedHive.box(Hive,
           'history',
         ).put('old', {'id': 'old', 'kind': kind, 'position': 12, 'time': 1});
         final pending = scopedHistoryStore(
@@ -136,13 +138,13 @@ void main() {
   test(
     'legacy preservation cannot revive an identity across a clear',
     () async {
-      await Hive.box('history').put('shared', {
+      await EncryptedHive.box(Hive, 'history').put('shared', {
         'id': 'shared',
         'kind': 'audio',
         'position': 45,
         'time': 1,
       });
-      await Hive.box('read_time').put('shared', {'2026-9-16': 23.0});
+      await EncryptedHive.box(Hive, 'read_time').put('shared', {'2026-9-16': 23.0});
 
       final replacing = store.addHistory({
         'id': 'shared',
@@ -166,10 +168,10 @@ void main() {
   test(
     'history clearing does not interrupt legacy time preservation',
     () async {
-      await Hive.box(
+      await EncryptedHive.box(Hive,
         'history',
       ).put('shared', {'id': 'shared', 'kind': 'audio', 'time': 1});
-      await Hive.box('read_time').put('shared', {'2026-9-16': 23.0});
+      await EncryptedHive.box(Hive, 'read_time').put('shared', {'2026-9-16': 23.0});
 
       final accumulating = store.accumulateReadTime('shared', 'book', 7);
       final cleared = store.clearHistory();
@@ -183,7 +185,7 @@ void main() {
   test(
     'a failed history write does not poison clearing or later saves',
     () async {
-      await Hive.box('history').close();
+      await EncryptedHive.box(Hive, 'history').close();
       await _save(store, 'audio', 'failed');
       await store.init();
       final cleared = store.clearReadingData();

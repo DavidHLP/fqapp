@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -24,7 +25,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     directory = await Directory.systemTemp.createTemp('fqapp-mine-page-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     await LibraryStore.instance.init();
   });
 

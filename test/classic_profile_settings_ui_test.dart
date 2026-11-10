@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -214,7 +215,7 @@ void main() {
       directory = await Directory.systemTemp.createTemp(
         'fqapp-classic-profile-',
       );
-      Hive.init(directory.path);
+      await initSyntheticHive(directory.path);
       await LibraryStore.instance.init();
     });
     tearDown(() async {

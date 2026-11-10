@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -39,7 +40,7 @@ void main() {
 
   setUp(() async {
     temp = await Directory.systemTemp.createTemp('fqapp-drama-key-');
-    Hive.init(temp.path);
+    await initSyntheticHive(temp.path);
     videoDir = Directory('${temp.path}${Platform.pathSeparator}offline-video')
       ..createSync();
     keys = SecureKeyProvider(storage: InMemorySecureKeyStorage());
@@ -56,7 +57,7 @@ void main() {
 
   test('keyHex is stored apart from the episode record', () async {
     await store.saveEpisode(episode());
-    final box = Hive.box<dynamic>('drama_download_v1_enc');
+    final box = EncryptedHive.box<dynamic>(Hive, 'drama_download_v1_enc');
     final raw = box.get('episode:ep1') as Map;
     expect(raw.containsKey('keyHex'), isFalse);
     expect(box.get('key:ep1'), '0102030405060708090a0b0c0d0e0f10');
@@ -93,7 +94,7 @@ void main() {
     final back = await store.episode('ep1');
     expect(back, isNotNull);
     expect(back!.keyHex, 'aabbccddeeff00112233445566778899');
-    final reopened = Hive.box<dynamic>('drama_download_v1_enc');
+    final reopened = EncryptedHive.box<dynamic>(Hive, 'drama_download_v1_enc');
     expect(
       (reopened.get('episode:ep1') as Map).containsKey('keyHex'),
       isFalse,
@@ -111,7 +112,7 @@ void main() {
     await store.saveEpisode(episode());
     await store.saveEpisode(episode(itemId: 'ep2'));
     await store.removeEpisode('ep1');
-    final box = Hive.box<dynamic>('drama_download_v1_enc');
+    final box = EncryptedHive.box<dynamic>(Hive, 'drama_download_v1_enc');
     expect(box.containsKey('episode:ep1'), isFalse);
     expect(box.containsKey('key:ep1'), isFalse);
     expect(box.containsKey('key:ep2'), isTrue);

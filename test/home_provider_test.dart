@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -15,7 +16,7 @@ void main() {
     final directory = await Directory.systemTemp.createTemp(
       'fqapp-home-provider-test-',
     );
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
   });
 
   tearDown(() async {

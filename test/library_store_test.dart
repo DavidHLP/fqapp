@@ -1,3 +1,5 @@
+import 'package:fqapp/services/encrypted_hive.dart';
+import 'support/synthetic_profile.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -16,7 +18,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     directory = await Directory.systemTemp.createTemp('fqapp-library-test-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
   });
 
   tearDown(() async {
@@ -131,7 +133,7 @@ void main() {
     'damaged Hive records cannot break history or reading statistics',
     () async {
       await store.init();
-      final history = Hive.box('history');
+      final history = EncryptedHive.box(Hive, 'history');
       await history.putAll({
         'valid': {'id': 'valid', 'time': 20, 'episode': '2', 'progress': '0.5'},
         'damaged': 'not a history record',
@@ -154,7 +156,7 @@ void main() {
       expect((await store.historyEntry('bad-fields'))?['episode'], isNull);
       await store.updateProgress('damaged', 1, .5);
 
-      final readTime = Hive.box('read_time');
+      final readTime = EncryptedHive.box(Hive, 'read_time');
       await readTime.putAll({
         'valid': {'2026-9-8': 60, 'bad': 'invalid', 'negative': -5},
         'damaged': 'invalid',
@@ -182,7 +184,7 @@ void main() {
     'history trimming removes actual keys despite damaged record IDs',
     () async {
       await store.init();
-      final history = Hive.box('history');
+      final history = EncryptedHive.box(Hive, 'history');
       await history.putAll({
         for (var index = 0; index < 100; index++)
           'key-$index': index == 0
@@ -200,7 +202,7 @@ void main() {
     'imported history is capped instead of growing unbounded',
     () async {
       await store.init();
-      final history = Hive.box('history');
+      final history = EncryptedHive.box(Hive, 'history');
       await history.putAll({
         for (var index = 0; index < 10001; index++)
           'imported-$index': {
@@ -342,7 +344,7 @@ void main() {
       });
       // Preservation keeps the original counters; it does not destructively
       // rewrite them or rely on deleting a source after copying its seconds.
-      expect(Hive.box('read_time').get('shared'), {
+      expect(EncryptedHive.box(Hive, 'read_time').get('shared'), {
         '2026-9-8': 60.0,
         '_media_kind_v1': 'audio',
         '_last_touched_v1': today.millisecondsSinceEpoch,
@@ -442,7 +444,7 @@ void main() {
         60,
         at: DateTime(2026, 9, 8),
       );
-      await Hive.box('read_time').close();
+      await EncryptedHive.box(Hive, 'read_time').close();
       await expectLater(
         store.addHistory({'id': 'legacy', 'kind': 'book', 'position': 900}),
         throwsA(isA<HiveError>()),
@@ -495,13 +497,13 @@ void main() {
       // A failed startup preservation leaves the original record and counters
       // present, but no allocation yet. Reading time can arrive before the
       // next complete novel history snapshot is saved successfully.
-      await Hive.box('history').put('shared', {
+      await EncryptedHive.box(Hive, 'history').put('shared', {
         'id': 'shared',
         'kind': 'audio',
         'chapterId': 'audio-chapter',
         'position': 45.0,
       });
-      await Hive.box('read_time').put('shared', {'2026-9-8': 60.0});
+      await EncryptedHive.box(Hive, 'read_time').put('shared', {'2026-9-8': 60.0});
       final today = DateTime(2026, 9, 8);
       await store
           .accumulateReadTime('shared', 'book', 10, at: today)
@@ -576,10 +578,10 @@ void main() {
     'SP retry keeps old and new seconds recorded on the same date',
     () async {
       await store.init();
-      await Hive.box(
+      await EncryptedHive.box(Hive,
         'history',
       ).put('shared', {'kind': 'audio', 'position': 45});
-      await Hive.box('read_time').put('shared', {'2026-9-8': 60.0});
+      await EncryptedHive.box(Hive, 'read_time').put('shared', {'2026-9-8': 60.0});
       final day = DateTime(2026, 9, 7);
       await store.accumulateReadTime('shared', 'book', 20, at: day);
       final source = jsonEncode({
@@ -630,7 +632,7 @@ void main() {
     'history trimming retains fifty distinct items despite legacy backups',
     () async {
       await store.init();
-      final history = Hive.box('history');
+      final history = EncryptedHive.box(Hive, 'history');
       await history.putAll({
         for (var index = 0; index < 60; index++) ...{
           '$index': {'kind': 'audio', 'time': index},

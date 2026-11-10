@@ -1,3 +1,5 @@
+import 'package:fqapp/services/encrypted_hive.dart';
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -14,7 +16,7 @@ void main() {
     directory = await Directory.systemTemp.createTemp(
       'fqapp-read-time-review-',
     );
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     await LibraryStore.instance.init();
   });
 
@@ -185,7 +187,7 @@ void main() {
     final store = LibraryStore.instance;
     await store.addHistory({'id': 'lonely', 'kind': 'audio', 'position': 1});
     await store.addHistory({'id': 'lonely', 'kind': 'book', 'position': 2});
-    expect(Hive.box('read_time').length, 0);
+    expect(EncryptedHive.box(Hive, 'read_time').length, 0);
   });
 
   test(
@@ -272,7 +274,7 @@ void main() {
       // the scoped key, which writes a second read-time record.
       await store.addHistory({'id': 'shared', 'kind': 'book', 'position': 2});
 
-      expect(Hive.box('read_time').length, lessThanOrEqualTo(1));
+      expect(EncryptedHive.box(Hive, 'read_time').length, lessThanOrEqualTo(1));
     },
   );
 }

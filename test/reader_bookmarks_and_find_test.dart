@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -303,7 +304,7 @@ void main() {
 
     setUp(() async {
       dir = await Directory.systemTemp.createTemp('fqapp-reader-bookmarks-');
-      Hive.init(dir.path);
+      await initSyntheticHive(dir.path);
       keys = SecureKeyProvider(storage: InMemorySecureKeyStorage());
       box = await EncryptedHive.openBox<dynamic>(
         Hive,

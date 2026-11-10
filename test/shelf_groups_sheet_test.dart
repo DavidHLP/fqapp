@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
@@ -30,7 +31,7 @@ void main() {
 
   setUpAll(() async {
     directory = await Directory.systemTemp.createTemp('fqapp-groups-sheet-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     // The sheet tests exercise UI + in-memory state; real Hive file I/O would
     // never complete inside the widget-test fake-async zone.
     store.writeOrganization = (box, encoded) async {};

@@ -1,3 +1,5 @@
+import 'package:fqapp/services/encrypted_hive.dart';
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -14,7 +16,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     directory = await Directory.systemTemp.createTemp('fqapp-b03-test-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
   });
 
   tearDown(() async {
@@ -24,7 +26,7 @@ void main() {
 
   test('an undated history entry survives the trim it triggers', () async {
     await store.init();
-    final history = Hive.box('history');
+    final history = EncryptedHive.box(Hive, 'history');
     await history.putAll({
       for (var index = 0; index < 100; index++)
         'record-$index': {'id': 'record-$index', 'time': index},
@@ -45,7 +47,7 @@ void main() {
 
   test('clearHistory is not overtaken by a pending addHistory', () async {
     await store.init();
-    final history = Hive.box('history');
+    final history = EncryptedHive.box(Hive, 'history');
     await history.put('shared', {'kind': 'audio', 'position': 45, 'time': 100});
 
     final pending = store.addHistory({
@@ -76,7 +78,7 @@ void main() {
 
     expect(store.historySnapshot(), isEmpty);
     expect(store.readTimeSnapshot(), isEmpty);
-    expect(Hive.box('history').isEmpty, isTrue);
-    expect(Hive.box('read_time').isEmpty, isTrue);
+    expect(EncryptedHive.box(Hive, 'history').isEmpty, isTrue);
+    expect(EncryptedHive.box(Hive, 'read_time').isEmpty, isTrue);
   });
 }

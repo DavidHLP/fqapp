@@ -1,3 +1,5 @@
+import 'package:fqapp/services/encrypted_hive.dart';
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -11,7 +13,7 @@ void main() {
   late SecureKeyProvider keys;
   setUp(() async {
     directory = await Directory.systemTemp.createTemp('fqapp-b02-test-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     keys = SecureKeyProvider(storage: InMemorySecureKeyStorage());
   });
   tearDown(() async {
@@ -37,7 +39,7 @@ void main() {
         1,
       );
       expect(
-        Hive.box('chapter_cache_catalog_v1_enc').containsKey('book:y'),
+        EncryptedHive.box(Hive, 'chapter_cache_catalog_v1_enc').containsKey('book:y'),
         isTrue,
       );
     },
@@ -58,7 +60,7 @@ void main() {
       final store = ChapterCacheStore(keys: keys, maxEntries: 1);
       await store.saveBook(_book('a'));
       await store.saveBook(_book('b'));
-      final box = Hive.box('chapter_cache_catalog_v1_enc');
+      final box = EncryptedHive.box(Hive, 'chapter_cache_catalog_v1_enc');
       expect(box.containsKey('book:a'), isFalse);
       expect(box.containsKey('book:b'), isTrue);
     },
@@ -67,7 +69,7 @@ void main() {
   test('stale catalogue-only records are aged out', () async {
     final store = ChapterCacheStore(keys: keys);
     await store.books();
-    final box = Hive.box('chapter_cache_catalog_v1_enc');
+    final box = EncryptedHive.box(Hive, 'chapter_cache_catalog_v1_enc');
     await box.put('book:stale', {
       'id': 'stale',
       'title': '旧书',
@@ -89,7 +91,7 @@ void main() {
     await _write(store, 'x', '2', 'x-two');
     await _write(store, 'x', '3', 'x-three');
     expect(
-      Hive.box('chapter_cache_catalog_v1_enc').containsKey('book:a'),
+      EncryptedHive.box(Hive, 'chapter_cache_catalog_v1_enc').containsKey('book:a'),
       isTrue,
     );
   });

@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -23,7 +24,7 @@ void main() {
     setSingleChapterPrefs({'shelfLayout': 'list'});
     ShelfViewStore.instance.resetForTest();
     directory = await Directory.systemTemp.createTemp('fqapp-shelf-modes-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     await LibraryStore.instance.init();
     await ShelfStore.instance.init();
     await ShelfGroupStore.instance.init();

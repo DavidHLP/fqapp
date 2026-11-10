@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -47,7 +48,7 @@ void main() {
     // 频道选择是进程级静态态：上一个用例的选择会带进下一个。
     DramaChannelPreferences.reset();
     hiveDir = await Directory.systemTemp.createTemp('fqapp-drama-pull-test-');
-    Hive.init(hiveDir.path);
+    await initSyntheticHive(hiveDir.path);
     // 「上滑查看更多视频」引导带 8s 定时器：按「已显示过」处理，免得留下
     // pending timer。
     await SwipeGuideStore.instance.init();

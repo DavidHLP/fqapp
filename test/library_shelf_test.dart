@@ -1,3 +1,5 @@
+import 'package:fqapp/services/encrypted_hive.dart';
+import 'support/synthetic_profile.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -37,7 +39,7 @@ void main() {
     setSingleChapterPrefs({'shelfLayout': 'list'});
     ShelfViewStore.instance.resetForTest();
     directory = await Directory.systemTemp.createTemp('fqapp-shelf-test-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     await LibraryStore.instance.init();
     await ShelfStore.instance.init();
   });
@@ -101,7 +103,7 @@ void main() {
     });
 
     test('损坏的记录不会带崩书架', () async {
-      final box = Hive.box<dynamic>(ShelfStore.boxName);
+      final box = EncryptedHive.box<dynamic>(Hive, ShelfStore.boxName);
       await box.put('broken', 'not a record');
       await box.put('half', {'title': '只有标题'});
       final records = ShelfStore.instance.records();
@@ -111,7 +113,7 @@ void main() {
   });
 
   group('LibraryPage', () {
-    testWidgets('书架 tab 读本地收藏，浏览历史 tab 读阅读历史', (tester) async {
+    syntheticWidgetTest('书架 tab 读本地收藏，浏览历史 tab 读阅读历史', (tester) async {
       // 真实的 Hive 文件 I/O 只能在真实异步区里完成：testWidgets 的测试体跑在
       // fake async 区，直接 await store 会永久挂住整份测试。
       await tester.runAsync(() async {
@@ -140,7 +142,7 @@ void main() {
       expect(find.text('第4章 · 50%'), findsWidgets);
     });
 
-    testWidgets('有总章数时显示「第 N/M 章」，读完整本显示「共 M 章·已读完」（issue #110）', (
+    syntheticWidgetTest('有总章数时显示「第 N/M 章」，读完整本显示「共 M 章·已读完」（issue #110）', (
       tester,
     ) async {
       await tester.runAsync(() async {
@@ -176,7 +178,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('书架按最近阅读排序，没有阅读记录的按加入时间', (tester) async {
+    syntheticWidgetTest('书架按最近阅读排序，没有阅读记录的按加入时间', (tester) async {
       // 列表模式在宽屏会排成多列；收窄到单列后按 dy 比较顺序。
       await tester.binding.setSurfaceSize(const Size(400, 800));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -206,7 +208,7 @@ void main() {
       expect(first.dy, lessThan(second.dy));
     });
 
-    testWidgets('四种版式可以切换并把偏好写进 SharedPreferences', (tester) async {
+    syntheticWidgetTest('四种版式可以切换并把偏好写进 SharedPreferences', (tester) async {
       setSingleChapterPrefs({});
       ShelfViewStore.instance.resetForTest();
       await tester.runAsync(() async {
@@ -247,7 +249,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('旧的列数偏好迁移成宫格并回写新键', (tester) async {
+    syntheticWidgetTest('旧的列数偏好迁移成宫格并回写新键', (tester) async {
       setSingleChapterPrefs({'bookshelf_layout': 4});
       ShelfViewStore.instance.resetForTest();
       await tester.runAsync(() async {
@@ -262,7 +264,7 @@ void main() {
       expect(prefs.getInt('bookshelf_layout'), 4);
     });
 
-    testWidgets('无效的旧偏好退回宫格且不写坏偏好', (tester) async {
+    syntheticWidgetTest('无效的旧偏好退回宫格且不写坏偏好', (tester) async {
       setSingleChapterPrefs({'bookshelf_layout': 'compact'});
       ShelfViewStore.instance.resetForTest();
       await tester.runAsync(() async {
@@ -278,7 +280,7 @@ void main() {
       expect(prefs.getString('shelfLayout'), isNull);
     });
 
-    testWidgets('已保存的列表偏好直接生效', (tester) async {
+    syntheticWidgetTest('已保存的列表偏好直接生效', (tester) async {
       setSingleChapterPrefs({'shelfLayout': 'list'});
       ShelfViewStore.instance.resetForTest();
       await tester.runAsync(() async {
@@ -289,7 +291,7 @@ void main() {
       expect(find.byKey(const Key('shelf-view-list')), findsOneWidget);
     });
 
-    testWidgets('编辑态可以全选并移出书架', (tester) async {
+    syntheticWidgetTest('编辑态可以全选并移出书架', (tester) async {
       await tester.runAsync(() async {
         await ShelfStore.instance.add(_item('a', title: '甲书'));
         await ShelfStore.instance.add(_item('b', title: '乙书'));
@@ -330,7 +332,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('移出书架免确认，撤销按原加入时间恢复', (tester) async {
+    syntheticWidgetTest('移出书架免确认，撤销按原加入时间恢复', (tester) async {
       await tester.runAsync(() async {
         await ShelfStore.instance.add(_item('a', title: '甲书'));
       });
@@ -369,7 +371,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('移出书架的撤销条到时自动消失（issue #211）', (tester) async {
+    syntheticWidgetTest('移出书架的撤销条到时自动消失（issue #211）', (tester) async {
       await tester.runAsync(() async {
         await ShelfStore.instance.add(_item('a', title: '甲书'));
       });
@@ -394,7 +396,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('收藏 tab 只放短剧/漫剧，书架 tab 只放书籍', (tester) async {
+    syntheticWidgetTest('收藏 tab 只放短剧/漫剧，书架 tab 只放书籍', (tester) async {
       await tester.runAsync(() async {
         await ShelfStore.instance.add(_item('plain-book', title: '架上小说'));
         await ShelfStore.instance.add(
@@ -438,7 +440,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('收藏 tab 编辑态移出：免确认直接执行，书籍不受影响', (tester) async {
+    syntheticWidgetTest('收藏 tab 编辑态移出：免确认直接执行，书籍不受影响', (tester) async {
       await tester.runAsync(() async {
         await ShelfStore.instance.add(_item('plain-book', title: '架上小说'));
         await ShelfStore.instance.add(
@@ -468,7 +470,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('收藏为空：空态文案随筛选变化，「找短剧」触发回调', (tester) async {
+    syntheticWidgetTest('收藏为空：空态文案随筛选变化，「找短剧」触发回调', (tester) async {
       var findDramaCalls = 0;
       await tester.runAsync(() async {
         await ShelfStore.instance.add(
@@ -492,7 +494,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('工具条提供分类/筛选/视图入口，排序在筛选弹层', (tester) async {
+    syntheticWidgetTest('工具条提供分类/筛选/视图入口，排序在筛选弹层', (tester) async {
       await tester.runAsync(() async {
         await ShelfStore.instance.add(_item('shelf-book'));
       });
@@ -534,7 +536,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('窄屏（360dp）下页头与工具条不溢出', (tester) async {
+    syntheticWidgetTest('窄屏（360dp）下页头与工具条不溢出', (tester) async {
       tester.view.physicalSize = const Size(1080, 2280);
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.reset);
@@ -554,7 +556,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('首屏条目使用 LoadedContentSequence / LoadedContentItem 入场', (
+    syntheticWidgetTest('首屏条目使用 LoadedContentSequence / LoadedContentItem 入场', (
       tester,
     ) async {
       addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
@@ -570,7 +572,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('视图弹层切换版式并持久化', (tester) async {
+    syntheticWidgetTest('视图弹层切换版式并持久化', (tester) async {
       setSingleChapterPrefs({});
       ShelfViewStore.instance.resetForTest();
       await tester.runAsync(() async {
@@ -589,7 +591,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('编辑态点按条目多选，完成后回到浏览态', (tester) async {
+    syntheticWidgetTest('编辑态点按条目多选，完成后回到浏览态', (tester) async {
       await tester.runAsync(() async {
         await ShelfStore.instance.add(_item('a', title: '甲书'));
       });
@@ -607,7 +609,7 @@ void main() {
       expect(find.byKey(const Key('shelf-edit-button')), findsNothing);
     });
 
-    testWidgets('编辑态侧滑/返回先退出编辑态，不把整页 pop 掉', (tester) async {
+    syntheticWidgetTest('编辑态侧滑/返回先退出编辑态，不把整页 pop 掉', (tester) async {
       await tester.runAsync(() async {
         await ShelfStore.instance.add(_item('a', title: '甲书'));
       });
@@ -636,7 +638,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('切走时条目被移出书架，回来时选中计数随数据回真', (tester) async {
+    syntheticWidgetTest('切走时条目被移出书架，回来时选中计数随数据回真', (tester) async {
       await tester.runAsync(() async {
         await ShelfStore.instance.add(_item('keep', title: '留下的'));
         await ShelfStore.instance.add(_item('gone', title: '被移出的'));
@@ -688,7 +690,7 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
 
-    testWidgets('空书架显示官方文案，去书城找书回调首页', (tester) async {
+    syntheticWidgetTest('空书架显示官方文案，去书城找书回调首页', (tester) async {
       var browsed = false;
       await tester.pumpWidget(_app(onBrowse: () => browsed = true));
       await tester.pumpAndSettle();
@@ -697,7 +699,7 @@ void main() {
       expect(browsed, isTrue);
     });
 
-    testWidgets('空的浏览历史用官方空态文案', (tester) async {
+    syntheticWidgetTest('空的浏览历史用官方空态文案', (tester) async {
       await tester.pumpWidget(_app());
       await tester.pumpAndSettle();
       await tester.tap(find.text('浏览历史'));
@@ -705,7 +707,7 @@ void main() {
       expect(find.text('未找到相关内容'), findsOneWidget);
     });
 
-    testWidgets('浏览历史编辑态的删除会移除选中记录', (tester) async {
+    syntheticWidgetTest('浏览历史编辑态的删除会移除选中记录', (tester) async {
       await tester.runAsync(() async {
         await LibraryStore.instance.addHistory({
           'id': 'history-book',
@@ -743,7 +745,7 @@ void main() {
       expect(find.text('未找到相关内容'), findsOneWidget);
     });
 
-    testWidgets('页头显示今日已读分钟数', (tester) async {
+    syntheticWidgetTest('页头显示今日已读分钟数', (tester) async {
       await tester.runAsync(() async {
         await LibraryStore.instance.accumulateReadTime('book-1', 'book', 600);
       });
@@ -752,7 +754,8 @@ void main() {
       expect(find.text('今日已读10分钟'), findsOneWidget);
     });
 
-    testWidgets('更多菜单保留清空历史与离线缓存', (tester) async {
+    syntheticWidgetTest('更多菜单保留清空历史与离线缓存', (tester) async {
+      addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
       await tester.runAsync(() async {
         await LibraryStore.instance.addHistory({
           'id': 'history-book',
@@ -789,7 +792,7 @@ void main() {
   });
 
   group('离线缓存扫描状态', () {
-    testWidgets('扫描未完成时显示「正在检查离线缓存…」', (tester) async {
+    syntheticWidgetTest('扫描未完成时显示「正在检查离线缓存…」', (tester) async {
       addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
       final pending = Completer<List<CachedBookSummary>>();
       await tester.runAsync(() async {
@@ -805,7 +808,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('扫描失败时显示「离线缓存暂不可用」', (tester) async {
+    syntheticWidgetTest('扫描失败时显示「离线缓存暂不可用」', (tester) async {
       addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
       await tester.runAsync(() async {
         await ShelfStore.instance.add(_item('a', title: '甲书'));
@@ -826,7 +829,7 @@ void main() {
 
   group('最近阅读缓存直达', () {
     for (final entry in ['首页', '书架']) {
-      testWidgets('$entry 缓存续读不经过详情或网络探测，并恢复原章节位置', (tester) async {
+      syntheticWidgetTest('$entry 缓存续读不经过详情或网络探测，并恢复原章节位置', (tester) async {
         addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
         setSingleChapterPrefs({
           'reader_page_mode': 'scroll',
@@ -938,7 +941,7 @@ void main() {
       });
     }
 
-    testWidgets('关闭书架直读时即使有最近章节缓存也先看详情', (tester) async {
+    syntheticWidgetTest('关闭书架直读时即使有最近章节缓存也先看详情', (tester) async {
       addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
       BookOpenPreferences.instance.resetForTest();
       await BookOpenPreferences.instance.setShelfDirectReader(false);
@@ -973,7 +976,7 @@ void main() {
   });
 
   group('书架离线直读', () {
-    testWidgets('导入章节的小说开启自动续读，普通书籍仍走原入口', (tester) async {
+    syntheticWidgetTest('导入章节的小说开启自动续读，普通书籍仍走原入口', (tester) async {
       await tester.runAsync(() async {
         await ShelfStore.instance.add(_item('101', title: '已导入的小说'));
         await LibraryStore.instance.mergeFanqie([
@@ -1008,7 +1011,7 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
 
-    testWidgets('普通书籍默认直达阅读器，关掉书架开关后停在详情页', (tester) async {
+    syntheticWidgetTest('普通书籍默认直达阅读器，关掉书架开关后停在详情页', (tester) async {
       await tester.runAsync(() async {
         await ShelfStore.instance.add(_item('plain', title: '普通小说'));
       });
@@ -1058,7 +1061,7 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
 
-    testWidgets('冷启动读取书架直读偏好：关闭时宽屏信息栏显示「查看详情」', (tester) async {
+    syntheticWidgetTest('冷启动读取书架直读偏好：关闭时宽屏信息栏显示「查看详情」', (tester) async {
       addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
       // 新进程：内存里还是默认 true，磁盘上用户已关掉书架直读。
       setSingleChapterPrefs({BookOpenPreferences.shelfKey: false});
@@ -1079,7 +1082,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('无网且本地有缓存时，点书直接进阅读器而不是详情页', (tester) async {
+    syntheticWidgetTest('无网且本地有缓存时，点书直接进阅读器而不是详情页', (tester) async {
       await tester.runAsync(() async {
         await ShelfStore.instance.add(_item('offline-book', title: '离线直读的书'));
       });
@@ -1108,7 +1111,7 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
 
-    testWidgets('无网但没有缓存时，仍然走详情页', (tester) async {
+    syntheticWidgetTest('无网但没有缓存时，仍然走详情页', (tester) async {
       await tester.runAsync(() async {
         await ShelfStore.instance.add(_item('no-cache-book', title: '没缓存的书'));
       });
@@ -1131,7 +1134,7 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
 
-    testWidgets('空书架给出「查看离线缓存」入口', (tester) async {
+    syntheticWidgetTest('空书架给出「查看离线缓存」入口', (tester) async {
       await tester.pumpWidget(_app());
       await tester.pumpAndSettle();
       expect(find.text('书架暂无书籍'), findsOneWidget);
@@ -1152,7 +1155,7 @@ void main() {
     });
   });
 
-  testWidgets('横向手势在书架一级 tab 之间切换', (tester) async {
+  syntheticWidgetTest('横向手势在书架一级 tab 之间切换', (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));

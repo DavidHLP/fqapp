@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -22,14 +23,10 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    // 详情页走真实 ChapterCacheStore（加密盒）。密钥加载在 widget 测试的
-    // fake-async 里会挂起、留一个未完成的超时 Timer（teardown 报错）；
-    // 在真实异步的 setUp 里先触发一次，让 provider 缓存这次失败，
-    // widget 阶段的查找直接返回 cached null，不再新建 Timer。
-    await SecureKeyProvider.instance.getOrCreateKey();
     // 书详情页走真实 ChapterCacheStore，需要 Hive。
     directory = await Directory.systemTemp.createTemp('fqapp-nav-pause-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
+    await SecureKeyProvider.instance.getOrCreateKey();
     // 发布的 config.json 显式打开新底栏：旧底栏初始化即清屏，
     // 标题行与原著卡不渲染，测不到跳转。
     PlayerStyleConfig.instance = const PlayerStyleConfig(

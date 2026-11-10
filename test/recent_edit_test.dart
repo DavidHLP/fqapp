@@ -1,7 +1,7 @@
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fqapp/services/library_store.dart';
@@ -21,7 +21,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final store = LibraryStore.instance;
       final dir = await _tempDir('fqapp-recent-delete');
-      Hive.init(dir.path);
+      await initSyntheticHive(dir.path);
       await store.init();
       await store.clearHistory();
       await store.addHistory({'id': 'a', 'kind': 'video', 'title': 'A'});
@@ -41,7 +41,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final store = LibraryStore.instance;
       final dir = await _tempDir('fqapp-recent-delete-kind');
-      Hive.init(dir.path);
+      await initSyntheticHive(dir.path);
       await store.init();
       await store.clearHistory();
       // 真实路径是作用域 store（同一条作品可能有 video/manju 两个作用域）。
@@ -65,7 +65,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final store = LibraryStore.instance;
       final dir = await _tempDir('fqapp-recent-delete-missing');
-      Hive.init(dir.path);
+      await initSyntheticHive(dir.path);
       await store.init();
       await store.clearHistory();
       expect(await store.removeHistoryEntry('nope', 'video'), isFalse);

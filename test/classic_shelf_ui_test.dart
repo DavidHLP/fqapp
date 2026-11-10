@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -163,7 +164,7 @@ void main() {
       ClassicShelfLayout.instance.resetForTest();
       BookOpenPreferences.instance.resetForTest();
       directory = await Directory.systemTemp.createTemp('fqapp-classic-shelf-');
-      Hive.init(directory.path);
+      await initSyntheticHive(directory.path);
       await LibraryStore.instance.init();
       await ShelfStore.instance.init();
       await ShelfGroupStore.instance.init();

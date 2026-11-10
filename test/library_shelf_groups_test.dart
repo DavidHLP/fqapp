@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -25,7 +26,7 @@ void main() {
     setSingleChapterPrefs({'shelfLayout': 'list'});
     ShelfViewStore.instance.resetForTest();
     directory = await Directory.systemTemp.createTemp('fqapp-shelf-groups-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     await LibraryStore.instance.init();
     await ShelfStore.instance.init();
     await ShelfGroupStore.instance.init();
@@ -145,7 +146,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.runAsync(() async {
       await tester.tap(find.byKey(const Key('shelf-remove-action')));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      final deadline = DateTime.now().add(const Duration(seconds: 10));
+      while (ShelfGroupStore.instance.groupOfKey('book:local_1_ab') !=
+              ShelfGroupStore.unfiled &&
+          DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
     });
     await tester.pumpAndSettle();
     expect(ShelfStore.instance.records(), isEmpty);

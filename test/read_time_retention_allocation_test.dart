@@ -1,3 +1,5 @@
+import 'package:fqapp/services/encrypted_hive.dart';
+import 'support/synthetic_profile.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -16,7 +18,7 @@ void main() {
     directory = await Directory.systemTemp.createTemp(
       'fqapp-retention-allocation-',
     );
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     await store.init();
   });
 
@@ -51,7 +53,7 @@ void main() {
         60,
         at: day.add(const Duration(days: 1)),
       );
-      expect(Hive.box('read_time').containsKey('shared'), isFalse);
+      expect(EncryptedHive.box(Hive, 'read_time').containsKey('shared'), isFalse);
       // Prevent this assertion from depending on which identity the next trim
       // selects. The surviving audio allocation remains part of the snapshot.
       store.maxReadTimeIdentities = 3;
@@ -72,7 +74,7 @@ void main() {
       await seedMigratedAudio(day);
       // Touch the novel after preservation, making the allocation the oldest.
       await store.accumulateReadTime('shared', 'book', 20, at: novelDay);
-      final times = Hive.box('read_time');
+      final times = EncryptedHive.box(Hive, 'read_time');
       store.maxReadTimeIdentities = 2;
       await store.accumulateReadTime(
         'other',
@@ -107,10 +109,10 @@ void main() {
         60,
         at: newDay.add(const Duration(days: 1)),
       );
-      expect(Hive.box('read_time').containsKey('audio:shared'), isFalse);
+      expect(EncryptedHive.box(Hive, 'read_time').containsKey('audio:shared'), isFalse);
       store.maxReadTimeIdentities = 3;
       await store.init();
-      expect(Hive.box('read_time').containsKey('audio:shared'), isFalse);
+      expect(EncryptedHive.box(Hive, 'read_time').containsKey('audio:shared'), isFalse);
       final preferences = await SharedPreferences.getInstance();
       final source = jsonEncode({
         'shared': {oldKey: 40.0},
@@ -135,7 +137,7 @@ void main() {
       final newKey = '${newDay.year}-${newDay.month}-${newDay.day}';
       await seedMigratedAudio(oldDay);
       await store.accumulateReadTime('shared', 'book', 20, at: newDay);
-      final times = Hive.box('read_time');
+      final times = EncryptedHive.box(Hive, 'read_time');
       // Persist the exact state left by a process interruption after preparing
       // the source ledger, before deleting the allocation target.
       await times.put('shared', {
@@ -147,7 +149,7 @@ void main() {
       expect(store.readTimeSnapshot()['shared'], {newKey: 20.0});
       expect(store.readTimeSnapshot()['audio:shared'], {oldKey: 30.0});
       // Completing the pending deletion can now only remove audio time.
-      await Hive.box('read_time').delete('audio:shared');
+      await EncryptedHive.box(Hive, 'read_time').delete('audio:shared');
       await store.init();
       expect(store.readTimeSnapshot()['shared'], {newKey: 20.0});
       expect(store.readTimeSnapshot().containsKey('audio:shared'), isFalse);
@@ -180,12 +182,12 @@ void main() {
       );
       store.readTimeRetentionDays = 2;
       await store.init();
-      final raw = Hive.box('read_time').get('shared') as Map;
+      final raw = EncryptedHive.box(Hive, 'read_time').get('shared') as Map;
       expect(raw['_allocated_media_time_v1'] as Map, hasLength(2));
       expect(store.readTimeSnapshot()['shared'], {newKey: 20.0});
       await store.clearReadingData();
       expect(store.readTimeSnapshot(), isEmpty);
-      expect(Hive.box('read_time').length, 0);
+      expect(EncryptedHive.box(Hive, 'read_time').length, 0);
     },
   );
 
@@ -203,7 +205,7 @@ void main() {
       await store.accumulateReadTime('shared', 'book', 20, at: newDay);
       // Persist exactly the legitimate eviction boundary for audio, while the
       // separate manga allocation stays live. Force no ordering on same-ms writes.
-      final times = Hive.box('read_time');
+      final times = EncryptedHive.box(Hive, 'read_time');
       await times.put('shared', {
         ...Map<dynamic, dynamic>.from(times.get('shared') as Map),
         '_allocated_media_time_v1': {oldKey: 40.0},
@@ -245,7 +247,7 @@ void main() {
         60,
         at: newDay.add(const Duration(days: 1)),
       );
-      expect(Hive.box('read_time').containsKey('audio:shared'), isFalse);
+      expect(EncryptedHive.box(Hive, 'read_time').containsKey('audio:shared'), isFalse);
       store.maxReadTimeIdentities = 3;
       final preferences = await SharedPreferences.getInstance();
       final source = jsonEncode({
@@ -264,7 +266,7 @@ void main() {
         expect(store.readTimeSnapshot()['audio:shared'], {
           for (final key in oldKeys.skip(1)) key: 10.0,
         });
-        final raw = Hive.box('read_time').get('audio:shared') as Map;
+        final raw = EncryptedHive.box(Hive, 'read_time').get('audio:shared') as Map;
         final allocation = raw['_legacy_media_time_v1'] as Map;
         expect(allocation['days'] as Map, hasLength(2));
         expect(allocation['discardedDays'] as Map, hasLength(2));

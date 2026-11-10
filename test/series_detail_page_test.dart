@@ -1,3 +1,4 @@
+import 'support/synthetic_profile.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -21,7 +22,7 @@ void main() {
   late Directory directory;
   setUpAll(() async {
     directory = await Directory.systemTemp.createTemp('series-detail-test-');
-    Hive.init(directory.path);
+    await initSyntheticHive(directory.path);
     await ShelfStore.instance.init();
   });
   tearDownAll(() async {
