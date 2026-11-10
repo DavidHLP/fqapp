@@ -1,0 +1,65 @@
+test/encrypted_hive_test.dart
+  s_b2a644b4b87ad6::t_55802fb4695c53 9,31,36,50-54
+  s_b2a644b4b87ad6::t_1582a8e4c2fb1c 32-35,37-49
+  s_b2a644b4b87ad6::t_62ed69fcfeae8f 55-56
+test/linux_profile_ownership_test.dart
+  s_b2a644b4b87ad6::t_d81ea8fc890418 51,56-57,62-66
+  s_b2a644b4b87ad6::t_1582a8e4c2fb1c 21-22,26-32,36-40,52-55,58-61,68-71,73-79,84-87
+  s_b2a644b4b87ad6::t_55802fb4695c53 1-20,23-25,33-35,41-50,67,72,80-83,88-90
+test/support/linux_profile_lock_process.dart
+  s_b2a644b4b87ad6::t_94e52fbb67640d 3
+  s_b2a644b4b87ad6::t_55802fb4695c53 1-2,4-7,10-17
+  s_b2a644b4b87ad6::t_1582a8e4c2fb1c 8-9
+lib/services/backend_transport.dart
+  s_b2a644b4b87ad6::t_6af9023eb6a51d 2
+  s_b2a644b4b87ad6::t_47cf689e0be7cf 12,324,346-348,354
+  s_b2a644b4b87ad6::t_c0eb0dbba3b9e3 343-345
+  s_b2a644b4b87ad6::t_7288725770bfda 341-342
+lib/services/encrypted_hive.dart
+  s_b2a644b4b87ad6::t_8a78590ad699f5 108-112,206-210
+  s_b2a644b4b87ad6::t_47cf689e0be7cf 7,107,119,121,205,217,219
+lib/services/linux_profile_ownership.dart
+  s_b2a644b4b87ad6::t_8a78590ad699f5 76-83
+  s_b2a644b4b87ad6::t_1582a8e4c2fb1c 8-13,31-32,35-36,57-59,64-66,107-109
+  s_b2a644b4b87ad6::t_7288725770bfda 6,50-53,97-101
+  s_b2a644b4b87ad6::t_6af9023eb6a51d 18-20,56,73,89,92-96,103-104
+  s_b2a644b4b87ad6::t_47cf689e0be7cf 1-5,7,14-17,21-29,37-49,54-55,60-63,67-72,74-75,84-88,90-91,102,105-106,110-119
+  s_b2a644b4b87ad6::t_97f97be0c30748 30,33-34
+lib/services/secure_key_provider.dart
+  s_b2a644b4b87ad6::t_ee2963872254db 79
+  s_b2a644b4b87ad6::t_94e52fbb67640d 74,87,99
+  s_b2a644b4b87ad6::t_d63df874a2441a 9
+  s_b2a644b4b87ad6::t_47cf689e0be7cf 1,3,67-68,73,75,86,88-89,97-98,100,104,113-114,116-118,125,129,132-133,136,140-145,147-148,150,153,157-159,180-181,183-187,190-192,197-200,211,214-215,217-218
+  s_b2a644b4b87ad6::t_1582a8e4c2fb1c 76-78,90-96,107-108,130-131,137-139,155,166-175
+  s_b2a644b4b87ad6::t_c0eb0dbba3b9e3 115,160-165,176-178,206-207
+  s_b2a644b4b87ad6::t_dbfa52c3a0c18e 105-106,109-111,120-124,216
+  s_b2a644b4b87ad6::t_6af9023eb6a51d 102-103,119,128
+  s_b2a644b4b87ad6::t_60b96fbebd78a3 10,101,201-203,219
+test/backend_runtime_init_retry_test.dart
+  s_b2a644b4b87ad6::t_97f97be0c30748 34
+  s_b2a644b4b87ad6::t_1582a8e4c2fb1c 16-18,21-29
+  s_b2a644b4b87ad6::t_8a78590ad699f5 1-2,14-15,19-20,30-33
+  s_b2a644b4b87ad6::t_b026e75fb88a71 35
+test/secure_key_provider_test.dart
+  s_b2a644b4b87ad6::t_d81ea8fc890418 112-114,155
+  s_b2a644b4b87ad6::t_c0eb0dbba3b9e3 2-5,15-18,23-28,87,89-90,96-105,111,196-198,204-206,211-212,303-305,307-314,316-318,320-322
+  s_b2a644b4b87ad6::t_1582a8e4c2fb1c 19-22,29-86,91-95,106-110,115-154,158-163,173-194,199-203,207-210,315
+  s_b2a644b4b87ad6::t_8a78590ad699f5 88,306,319
+  s_b2a644b4b87ad6::t_55802fb4695c53 156-157,164-172,195,323-329
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "923e1737bf5d072c19a97f8f7b2e5bce46c3c02c",
+  "prompts": {},
+  "sessions": {
+    "s_b2a644b4b87ad6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c54a-db46-7881-90ac-47f258b9add7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
