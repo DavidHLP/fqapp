@@ -1,0 +1,65 @@
+test/linux_profile_ownership_test.dart
+  s_44c315a22fb701::t_c4430e0746059f 33,35-36,38
+  s_44c315a22fb701::t_4ed1554fb066e2 37,59-74
+lib/services/encrypted_hive.dart
+  s_44c315a22fb701::t_2f74bc33cb4499 10-15,47-49
+  s_44c315a22fb701::t_82429fe59e97ed 2,37,41-46,50-55,109
+test/encrypted_hive_test.dart
+  s_44c315a22fb701::t_c4430e0746059f 31-35,37-40,42-47,49-61
+  s_44c315a22fb701::t_74821f90910ba0 36,41,48
+lib/services/linux_profile_ownership.dart
+  s_44c315a22fb701::t_82429fe59e97ed 3-6,12,51,55-58,61-64
+  s_44c315a22fb701::t_2f74bc33cb4499 7,59-60
+lib/main.dart
+  s_44c315a22fb701::t_82429fe59e97ed 91,499,501,546-548,553-554,565-583,592,621-626,639,662,700
+  s_44c315a22fb701::t_c4430e0746059f 61
+  s_44c315a22fb701::t_98de5e305933b2 500,640-661,680-686,689-694,697-699
+test/support/linux_profile_lock_process.dart
+  s_44c315a22fb701::t_c4430e0746059f 12-14,32-33,35
+test/system_tts_test.dart
+  s_44c315a22fb701::t_3b7285985e8d32 31-33,37-53
+  s_44c315a22fb701::t_c4430e0746059f 5,54,71
+  s_44c315a22fb701::t_ed9b6d8a58fb7a 34-36
+test/app_bootstrap_test.dart
+  s_44c315a22fb701::t_8e39de00252d5f 10,17-19,21-29,38-40,44-46,48-54,73,362-384,386,388-394,397-409
+  s_44c315a22fb701::t_c4430e0746059f 9,20,30-37,41-43,47,55-72
+  s_44c315a22fb701::t_4901693751937e 385,387,395-396,410
+native/linux/tts.cc
+  s_44c315a22fb701::t_2f74bc33cb4499 226-227
+  s_44c315a22fb701::t_82429fe59e97ed 199-200,228
+  s_44c315a22fb701::t_87a6a19d833904 225
+  s_44c315a22fb701::t_3b7285985e8d32 196
+lib/pages/system_tts_settings_page.dart
+  s_44c315a22fb701::t_82429fe59e97ed 21,176-187,195
+  s_44c315a22fb701::t_41ab6cd0899c2d 188-194,196-207,256,296,302-306
+lib/services/system_tts.dart
+  s_44c315a22fb701::t_87a6a19d833904 54,82,86-89,95-96,98-99,112
+  s_44c315a22fb701::t_25038e73b97ee3 97
+native/linux/README.md
+  s_44c315a22fb701::t_87a6a19d833904 61-62
+  s_44c315a22fb701::t_5005ac69ad1d65 53
+code-review-fixes-handoff.md
+  s_44c315a22fb701::t_d554f455c39e5d 63-68
+  s_44c315a22fb701::t_513d811e9dd90b 1-62
+test/system_tts_settings_visual_test.dart
+  s_44c315a22fb701::t_e2a8fccc3d2fe3 24,72
+  s_44c315a22fb701::t_015732581baab6 3,46-71,73-74
+integration_test/linux_runtime_test.dart
+  s_44c315a22fb701::t_d49e4bdcb3c8f1 72-75,321-340
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d734d1fd2c48d962d5ea04ac0a0ee5b79da5bc14",
+  "prompts": {},
+  "sessions": {
+    "s_44c315a22fb701": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c5a2-1e43-7be0-847a-3346c6b181b4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
