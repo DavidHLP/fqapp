@@ -271,7 +271,7 @@ void main() {
     messenger.setMockMethodCallHandler(channel, (call) async {
       // 只统计引导用的文档目录（Hive.initFlutter）；应用日志落盘会另探一次
       // 支持目录（getApplicationSupportDirectory），与本用例的「重试一次」无关。
-      if (call.method == 'getApplicationSupportDirectory') attempts++;
+      if (call.method == 'getApplicationDocumentsDirectory') attempts++;
       throw PlatformException(
         code: 'unavailable',
         message: 'private-storage-path',

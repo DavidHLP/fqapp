@@ -94,7 +94,9 @@ Future<void> main() async {
 /// 装配失败由外层启动门阻止业务页面挂载；持锁保留现场以供重试。
 Future<void> _prepareRuntime() async {
   if (Platform.isLinux) {
-    final root = await getApplicationSupportDirectory();
+    // Match Hive.initFlutter's existing directory; the shared namespace lock
+    // also serializes support-directory runtime/log writes across profiles.
+    final root = await getApplicationDocumentsDirectory();
     LinuxProfileOwnership.current ??= await LinuxProfileOwnership.acquire(root);
     LinuxProfileOwnership.requireCurrent().requireProfileDirectory(root.path);
     if (await SecureKeyProvider.instance.getOrCreateKey() == null) {
