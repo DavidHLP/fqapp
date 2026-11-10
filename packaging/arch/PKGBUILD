@@ -1,0 +1,50 @@
+# Local source archive from the exact delivery commit; see LINUX.md.
+pkgname=fqapp
+pkgver=1.0.201
+pkgrel=1
+pkgdesc='fqapp Linux desktop client (draft validation build)'
+arch=('x86_64')
+url='https://github.com/DavidHLP/fqapp'
+license=('GPL-3.0-only')
+depends=('glibc' 'libgcc' 'libstdc++' 'gtk3' 'glib2' 'pango' 'cairo'
+         'gdk-pixbuf2' 'at-spi2-core' 'harfbuzz' 'zlib' 'fontconfig'
+         'libsecret' 'mpv' 'libepoxy' 'libglvnd' 'libx11' 'dbus'
+         'xdg-utils' 'hicolor-icon-theme' 'java-runtime>=17')
+optdepends=('org.freedesktop.secrets: encrypted storage (choose your desktop provider)'
+            'xdg-desktop-portal: desktop portal services; also select a desktop backend'
+            'noto-fonts-cjk: additional Chinese desktop fonts')
+makedepends=('clang' 'cmake' 'ninja' 'pkgconf' 'rust' 'python' 'patchelf'
+             'desktop-file-utils')
+options=('!strip' '!debug')
+source=('fqapp-source.tar.zst')
+# The delivery script replaces this with the exact local archive checksum.
+sha256sums=('0000000000000000000000000000000000000000000000000000000000000000')
+
+build() {
+  cd "$srcdir/fqapp"
+  : "${FLUTTER_ROOT:?Set FLUTTER_ROOT to the official Flutter 3.47.9 SDK}"
+  export PATH="$FLUTTER_ROOT/bin:$PATH"
+  flutter --version --machine | python -c 'import json,sys; assert json.load(sys.stdin)["frameworkRevision"] == "c197ca5199e9ee5661e865596c9c07294dfab51c"'
+  [[ $(rustc --version) == 'rustc 1.99.1 '* ]]
+  # Fetch pinned dependencies separately; building the archive is offline.
+  flutter pub get --offline --enforce-lockfile
+  export CARGO_NET_OFFLINE=true
+  flutter build linux --release --no-pub
+  python packaging/arch/prepare_bundle.py build/linux/x64/release/bundle
+  mkdir -p build/linux/x64/release/bundle/licenses
+  cp LICENSE build/linux/x64/release/bundle/licenses/
+  cp -r assets/fonts/*OFL* assets/licenses build/linux/x64/release/bundle/licenses/
+  cp "$FLUTTER_ROOT/bin/cache/artifacts/engine/linux-x64/"LICENSE* build/linux/x64/release/bundle/licenses/
+}
+
+package() {
+  cd "$srcdir/fqapp"
+  install -d "$pkgdir/usr/lib/fqapp" "$pkgdir/usr/bin"
+  cp -a build/linux/x64/release/bundle/. "$pkgdir/usr/lib/fqapp/"
+  install -Dm755 packaging/arch/fqapp "$pkgdir/usr/bin/fqapp"
+  install -Dm644 packaging/arch/com.fqapp.fqapp.desktop "$pkgdir/usr/share/applications/com.fqapp.fqapp.desktop"
+  install -Dm644 packaging/arch/com.fqapp.fqapp.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/com.fqapp.fqapp.svg"
+  install -Dm644 LINUX.md "$pkgdir/usr/share/doc/fqapp/LINUX.md"
+  install -Dm644 packaging/arch/DEPENDENCIES.md "$pkgdir/usr/share/doc/fqapp/DEPENDENCIES.md"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/fqapp/LICENSE"
+}

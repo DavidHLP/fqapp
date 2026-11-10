@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=fqapp
+Name[zh_CN]=fqapp 阅读器
+Comment=Books, comics and media
+Exec=/usr/bin/fqapp
+Icon=com.fqapp.fqapp
+Terminal=false
+Categories=AudioVideo;
+StartupWMClass=com.fqapp.fqapp
