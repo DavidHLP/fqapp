@@ -84,7 +84,11 @@ permission or release action is present. Other platform regressions run in their
 existing workflows and must also pass before release.
 
 `packaging/arch/build_release.sh` sets Rust remap-path-prefix and C/C++
-ffile-prefix-map. Build in a neutral source/SDK/PUB_CACHE/HOME directory to reduce
+ffile-prefix-map, preserving paths with spaces and existing encoded Rust flags.
+Both release and packaging reject untracked inputs in code, native, dependency,
+and asset directories, including ignored assets; generated Linux ephemeral files
+are excluded. Move local inputs aside or build an exact Git export; these checks
+never delete local files. Build in a neutral source/SDK/PUB_CACHE/HOME directory to reduce
 Dart AOT file URIs too. The pinned Flutter Linux command has no general source
 prefix remapping flag; filesystem-root is a compiler input overlay, not a promise
 to redact diagnostics. Do not rewrite binary strings or drop notices. ELF report

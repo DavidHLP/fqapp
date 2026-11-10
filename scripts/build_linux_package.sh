@@ -10,7 +10,7 @@ bundle=$(realpath -e -- "$1")
 output=$(realpath -m -- "$2")
 revision=$(git -C "$root" rev-parse --verify --end-of-options "$3^{commit}")
 [[ $revision == "$(git -C "$root" rev-parse HEAD)" ]]
-git -C "$root" diff --quiet HEAD --
+python "$root/packaging/arch/check_source.py" "$root"
 [[ $(cat "$bundle/source-commit.txt") == "$revision" ]]
 [[ $bundle != / && $output != / && ! -e $output ]]
 case "$output/" in "$bundle/"*) echo 'Output must be outside bundle' >&2; exit 2;; esac
