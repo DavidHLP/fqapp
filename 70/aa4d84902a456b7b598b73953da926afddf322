@@ -1,0 +1,34 @@
+scripts/build_linux_package.sh
+  s_e90db3094d490d::t_a73873b26dc975 12-14,21-25,68-74,80
+.github/workflows/linux.yml
+  s_e90db3094d490d::t_a73873b26dc975 41,43,61,91,111-113
+packaging/arch/build_release.sh
+  s_e90db3094d490d::t_a73873b26dc975 1-15
+  s_e90db3094d490d::t_5cbffad55b3141 16
+packaging/arch/prepare_bundle.py
+  s_e90db3094d490d::t_a73873b26dc975 20,29
+packaging/arch/PKGBUILD
+  s_e90db3094d490d::t_a73873b26dc975 12-14,33
+LINUX.md
+  s_e90db3094d490d::t_f7ae231fed9951 4,12,19-22,35,43-48,51-53,77,84-92
+packaging/arch/DEPENDENCIES.md
+  s_e90db3094d490d::t_f7ae231fed9951 22-34,54-56
+docs/linux/IMPLEMENTATION-STATUS.md
+  s_e90db3094d490d::t_bea153615fd65e 26-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "70aa4d84902a456b7b598b73953da926afddf322",
+  "prompts": {},
+  "sessions": {
+    "s_e90db3094d490d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c570-b8ef-7480-ae28-4249f6b84741",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
