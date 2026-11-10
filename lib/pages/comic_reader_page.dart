@@ -197,7 +197,7 @@ class _ComicReaderPageState extends State<ComicReaderPage>
 
   @override
   Widget build(BuildContext context) {
-    if (!isWindowsDesktop) return _buildSurface(context);
+    if (!isDesktopPlatform) return _buildSurface(context);
     return LayoutBuilder(
       builder: (context, bounds) => Row(
         children: [

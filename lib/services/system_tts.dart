@@ -1,4 +1,5 @@
 import 'platform_channel.dart';
+import 'desktop_platform.dart';
 import 'dart:async';
 
 import 'package:flutter/services.dart';
@@ -222,6 +223,8 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
   // focus_resume 就自动续播。用户手动暂停会清掉它，电话里自己停下的
   // 不会被误恢复。
   bool _resumeOnFocusGain = false;
+  int? _visibilityResumeGeneration;
+  Future<void> _visibilityPause = Future<void>.value();
   // 焦点已交还（收到 focus_resume），但当时 app 还在后台、不允许出声：
   // 记下来等回到前台再补。否则 resume() 的 _allowed 闸会把它直接吞掉。
   bool _pendingFocusResume = false;
@@ -288,7 +291,7 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
     book.replacementStore.changes.addListener(_replacementChanged);
     _appActive =
         WidgetsBinding.instance.lifecycleState == null ||
-        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+        desktopInactiveStillVisible(WidgetsBinding.instance.lifecycleState!);
     AudioPreferences.instance.backgroundPlayback.addListener(
       _preferencesChanged,
     );
@@ -597,6 +600,7 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
   /// 会让蓝牙播放键、媒体通知都指向这个已经停下的朗读。所以这里照旧 `stop()`，
   /// 把焦点交还；`_pauseForInterruption` 才保留焦点等系统交还后自动续播。
   Future<void> pause() async {
+    _visibilityResumeGeneration = null;
     if (closed) return;
     // 用户（或任何非焦点路径）主动暂停：清掉「挂断后自动续播」的意图，
     // 电话里自己按停的，挂断后不会被复活。
@@ -709,7 +713,21 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    _appActive = state == AppLifecycleState.resumed;
+    _appActive = desktopInactiveStillVisible(state);
+    if (isLinuxDesktop && state == AppLifecycleState.detached) {
+      _visibilityResumeGeneration = null;
+      unawaited(close());
+      return;
+    }
+    if (isLinuxDesktop) {
+      if (!_allowed && wantPlay) {
+        _visibilityPause = _pauseForInterruption();
+        _visibilityResumeGeneration = _generation;
+      } else if (_appActive && _visibilityResumeGeneration != null) {
+        unawaited(_resumeAfterVisibility());
+      }
+      return;
+    }
     if (!_allowed) {
       // 切后台不是用户想停朗读（电话期间几乎必然走这一条）：按系统打断
       // 处理，等回到前台时若有欠下的 focus_resume 就补上续播。
@@ -721,6 +739,15 @@ class SystemTtsPlayback extends ChangeNotifier with WidgetsBindingObserver {
         unawaited(resume());
       }
     }
+  }
+
+  Future<void> _resumeAfterVisibility() async {
+    final generation = _visibilityResumeGeneration;
+    await _visibilityPause;
+    if (closed || !_appActive || generation == null ||
+        generation != _generation || _visibilityResumeGeneration != generation) return;
+    _visibilityResumeGeneration = null;
+    await resume();
   }
 
   Future<void> close() => _closeFuture ??= _close();

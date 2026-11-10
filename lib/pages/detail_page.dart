@@ -550,7 +550,7 @@ class _DetailPageState extends State<DetailPage> {
   @override
   Widget build(BuildContext context) {
     final palette = HomePalette.of(context);
-    final desktop = isWindowsDesktop && MediaQuery.sizeOf(context).width >= 700;
+    final desktop = isDesktopPlatform && MediaQuery.sizeOf(context).width >= 700;
     final overlay =
         (palette.dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
             .copyWith(

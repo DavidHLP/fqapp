@@ -53,6 +53,8 @@ class _AudioPlaybackController extends ChangeNotifier
   // 小米公平运行内存 KILL 广播的刷盘注销函数，见 reader_page.dart。
   VoidCallback? _unregisterFairMemoryFlush;
   bool _appActive = true;
+  int? _visibilityResumeGeneration;
+  Future<void> _visibilityPause = Future<void>.value();
   bool _loading = true;
   bool _wantPlay = true;
   bool _completed = false;
@@ -211,7 +213,7 @@ class _AudioPlaybackController extends ChangeNotifier
     );
     _history = AudioHistory(request.historyStore ?? LibraryStore.instance);
     final lifecycle = WidgetsBinding.instance.lifecycleState;
-    _appActive = lifecycle == null || lifecycle == AppLifecycleState.resumed;
+    _appActive = lifecycle == null || desktopInactiveStillVisible(lifecycle);
     _bookId = request.bookId;
     _title = request.title;
     _cover = request.cover;
@@ -433,6 +435,7 @@ class _AudioPlaybackController extends ChangeNotifier
   }
 
   Future<void> _pauseForOtherMedia() async {
+    _visibilityResumeGeneration = null;
     if (_closed || !_wantPlay) return;
     _update(() => _wantPlay = false);
     _listenTime.stop();
@@ -454,18 +457,38 @@ class _AudioPlaybackController extends ChangeNotifier
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_closed) return;
-    _appActive = state == AppLifecycleState.resumed;
+    _appActive = desktopInactiveStillVisible(state);
+    if (isLinuxDesktop && state == AppLifecycleState.detached) {
+      _visibilityResumeGeneration = null;
+      unawaited(close());
+      return;
+    }
+    if (isLinuxDesktop && _appActive) unawaited(_resumeAfterVisibility());
     if (!_appActive) {
       // 切换到后台或锁屏时立即持久化当前进度，防止后续被系统杀后台导致进度丢失。
       unawaited(_persistProgress());
       // 若后台听书开关关闭，切后台自动暂停播放并移除前台通知。
-      if (!AudioPreferences.instance.backgroundPlayback.value) {
-        unawaited(_pauseForOtherMedia());
+      if (!AudioPreferences.instance.backgroundPlayback.value && _wantPlay) {
+        final resume = isLinuxDesktop && _wantPlay;
+        _visibilityPause = _pauseForOtherMedia();
+        if (resume) _visibilityResumeGeneration = _generation;
         unawaited(NativePlayer.stopListenForeground());
       }
     }
     _syncListenClock();
     if (!_closed) _update(() {});
+  }
+
+  Future<void> _resumeAfterVisibility() async {
+    final generation = _visibilityResumeGeneration;
+    if (generation == null) return;
+    await _visibilityPause;
+    if (_closed || !_appActive || _generation != generation ||
+        _visibilityResumeGeneration != generation) return;
+    _visibilityResumeGeneration = null;
+    _update(() => _wantPlay = true);
+    final player = _player;
+    if (_ready && player != null) await _play(player, generation);
   }
 
   Future<void> _openChapter(
@@ -1126,6 +1149,7 @@ class _AudioPlaybackController extends ChangeNotifier
   }
 
   Future<void> _togglePlayback() async {
+    _visibilityResumeGeneration = null;
     final player = _player;
     if (!_ready || player == null) return;
     final generation = _generation;

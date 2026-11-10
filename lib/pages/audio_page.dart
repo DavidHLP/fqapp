@@ -697,7 +697,7 @@ class _AudioPageState extends State<AudioPage> {
     final introSummary = detail?.abstract ?? '';
     final related = c._extras.related.isEmpty ? null : c._extras.related.first;
     // Windows 桌面端用独立版式；它只需要 tones，上面这些局部变量先算好并不吃亏。
-    if (isWindowsDesktop) return _desktopAudio(palette, chapter, tones);
+    if (isDesktopPlatform) return _desktopAudio(palette, chapter, tones);
 
     // 官方整页底色/字色都取自封面（见 audio_page_theme.dart）；墨水屏固定
     // 纯黑白，不使用封面取色。

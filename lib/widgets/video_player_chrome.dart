@@ -822,7 +822,7 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // `inactive` 只是瞬态打断（下拉通知栏/控制中心/分屏呼出）：应用仍在
     // 前台可见，播放继续；只有 hidden/paused/detached 才表示真正离场。
-    if (state == AppLifecycleState.inactive && !isWindowsDesktop) return;
+    if (state == AppLifecycleState.inactive && !isDesktopPlatform) return;
     final active = playbackAppIsActive(state);
     if (!active && _appActive) {
       _appActive = false;
@@ -848,7 +848,9 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
       if (!floating) unawaited(_control((player) => player.pause()));
     } else if (active && !_appActive) {
       _appActive = true;
-      if (_resumeOnForeground) unawaited(_control((player) => player.play()));
+      if (_resumeOnForeground && !_routeCovered) {
+        unawaited(_control((player) => player.play()));
+      }
       _resumeOnForeground = false;
       // 回到前台时系统可能已把系统栏放回来；全屏仍在就重新隐藏（#176）。
       if (_fullScreen && !_routeCovered) {
@@ -2330,7 +2332,7 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
   }
 
   @override
-  Widget build(BuildContext context) => isWindowsDesktop
+  Widget build(BuildContext context) => isDesktopPlatform
       ? DesktopVideoChrome(
           configuration: widget,
           onRateSelected: (rate) async {

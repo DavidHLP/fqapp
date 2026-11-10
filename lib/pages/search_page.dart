@@ -654,7 +654,7 @@ class _SearchPageState extends State<SearchPage> {
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: isWindowsDesktop ? double.infinity : 840,
+                maxWidth: isDesktopPlatform ? double.infinity : 840,
               ),
               // Upstream pads the whole search plane by the tab height, so
               // the scroll viewport starts below the search capsule and rows
@@ -683,7 +683,7 @@ class _SearchPageState extends State<SearchPage> {
     alignment: Alignment.topCenter,
     child: ConstrainedBox(
       constraints: BoxConstraints(
-        maxWidth: isWindowsDesktop ? double.infinity : 840,
+        maxWidth: isDesktopPlatform ? double.infinity : 840,
       ),
       child: Column(
         children: [

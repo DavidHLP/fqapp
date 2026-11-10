@@ -77,8 +77,10 @@ Future<void> main() async {
 /// `runApp` 之前的运行时装配：桌面窗口回调、应用内日志、分享与 Rust 日志的桥。
 /// 这些都不决定界面能不能起来，所以失败只记日志（见 [main]）。
 Future<void> _prepareRuntime() async {
+  // T09/T13: acquire Linux profile ownership before this function writes logs
+  // or starts any key/runtime work; wire the security initialization here.
   registerPortedUiLicenses();
-  if (isWindowsDesktop) await DesktopPlatform.instance.initialize();
+  if (isDesktopPlatform) await DesktopPlatform.instance.initialize();
   // 应用内日志：接管 debugPrint 与 FlutterError.onError，未处理异步异常由
   // [main] 的 runZonedGuarded 捕获；文件持久化异步开启，失败只退回内存模式。
   AppLog.instance.install();
@@ -97,7 +99,7 @@ Future<void> _prepareRuntime() async {
   // Rust 核心日志的读取入口：日志页「Rust」视图读 runtime_dir/rust.log。
   // 核心只在 Android 落盘（桌面/测试构建不装 logger），读不到时页面给空态。
   RustLogSource.reader = BackendService.instance.readRustLog;
-  if (isWindowsDesktop) {
+  if (isDesktopPlatform) {
     DesktopPlatform.instance.beforeClose = () async {
       DramaDownloader.instance.pauseAll();
       AudioDownloader.instance.pauseAll();
@@ -119,6 +121,8 @@ Future<void> _prepareRuntime() async {
 }
 
 Future<void> _initializeLocalData() async {
+  // Linux profile ownership must be acquired here before Hive, keys or runtime.
+  // T09/T13 supplies the fail-closed initialization hook at this boundary.
   await Hive.initFlutter();
   // 以下初始化互相独立（各开各的 box / 各读各的配置），串行等只会把
   // 磁盘 I/O 叠加到冷启动里；并行发起，失败语义与串行时一致：必需项
@@ -249,11 +253,11 @@ class _FqAppState extends State<FqApp> {
   // Official tabbar + 18dp applies on every page. Our floating dock is 64
   // high with an 8px gap; the desktop shell has no bottom bar.
   final _audioRoutes = AudioFloatingRoutes(
-    defaultBottomInset: isWindowsDesktop ? 0 : 72,
+    defaultBottomInset: isDesktopPlatform ? 0 : 72,
   );
   // Desktop fullscreen reparents the content; keep the playback owner alive.
   final _audioScopeKey = GlobalKey();
-  final _navigatorKey = isWindowsDesktop
+  final _navigatorKey = isDesktopPlatform
       ? DesktopPlatform.navigatorKey
       : GlobalKey<NavigatorState>();
 
@@ -310,7 +314,7 @@ class _FqAppState extends State<FqApp> {
                                 ),
                         child: AudioFloatingRouteScope(
                           routes: _audioRoutes,
-                          child: isWindowsDesktop
+                          child: isDesktopPlatform
                               ? DesktopAppFrame(child: playback)
                               : playback,
                         ),
@@ -604,7 +608,7 @@ class _RootShellState extends State<RootShell> {
         ),
       );
     }
-    if (isWindowsDesktop) {
+    if (isDesktopPlatform) {
       return ValueListenableBuilder<int>(
         valueListenable: desktopTab,
         builder: (context, index, _) {

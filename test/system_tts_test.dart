@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fqapp/models/media_item.dart';
@@ -253,6 +254,36 @@ void main() {
       }
     },
   );
+
+  testWidgets('Linux visibility resumes only an automatically paused TTS session', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    await AudioPreferences.instance.setBackgroundPlayback(false);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final playback = session();
+    try {
+      playback.start();
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      expect(playback.wantPlay, isTrue);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      await tester.pump();
+      expect(playback.wantPlay, isFalse);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(playback.wantPlay, isTrue);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      await tester.pump();
+      await playback.pause();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(playback.wantPlay, isFalse);
+    } finally {
+      await playback.close();
+      await tester.pump();
+    }
+  });
 
   testWidgets('a temporary focus loss resumes once the focus comes back', (
     tester,

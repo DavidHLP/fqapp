@@ -76,7 +76,7 @@ class SettingsPage extends StatelessWidget {
             systemBrightness: MediaQuery.platformBrightnessOf(context),
           ))
             _oledModeItem(),
-          if (!isWindowsDesktop) _playerLayoutItem(),
+          if (!isDesktopPlatform) _playerLayoutItem(),
         ],
       ),
       SettingsCategory(
@@ -119,7 +119,7 @@ class SettingsPage extends StatelessWidget {
         subtitle: '后台播放、通知栏控制与系统朗读',
         items: [
           _backgroundAudioItem(),
-          if (!isWindowsDesktop) _audioRateEngineItem(),
+          if (!isDesktopPlatform) _audioRateEngineItem(),
           SettingsItem(
             icon: CupertinoIcons.mic,
             title: '系统朗读',
@@ -137,8 +137,8 @@ class SettingsPage extends StatelessWidget {
         subtitle: '播放',
         items: [
           _muteWhenColdStartItem(),
-          if (!isWindowsDesktop) _floatingWindowItem(),
-          if (!isWindowsDesktop) _videoDecoderItem(),
+          if (!isDesktopPlatform) _floatingWindowItem(),
+          if (!isDesktopPlatform) _videoDecoderItem(),
         ],
       ),
       SettingsCategory(
@@ -194,7 +194,7 @@ class SettingsPage extends StatelessWidget {
 
     // Keep the desktop body at one element path while switching themes: its
     // nested Navigator owns the theme picker and must not be recreated mid-tap.
-    if (isWindowsDesktop) {
+    if (isDesktopPlatform) {
       return WenkuPage(
         header: _header(context),
         child: Padding(

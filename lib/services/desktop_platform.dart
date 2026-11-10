@@ -26,12 +26,18 @@ import 'platform_channel.dart';
 bool get isWindowsDesktop =>
     !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
 
-/// On Windows an inactive window is still visible; it simply lacks input focus.
+bool get isLinuxDesktop =>
+    !kIsWeb && defaultTargetPlatform == TargetPlatform.linux;
+
+/// Platforms with an installed desktop frame and media_kit adapter.
+bool get isDesktopPlatform => isWindowsDesktop || isLinuxDesktop;
+
+/// On desktop an inactive window is still visible; it simply lacks input focus.
 /// Only hidden/paused/detached windows should defer foreground video playback.
 bool playbackAppIsActive(AppLifecycleState? state) =>
     state == null ||
     state == AppLifecycleState.resumed ||
-    (isWindowsDesktop && state == AppLifecycleState.inactive);
+    (isDesktopPlatform && state == AppLifecycleState.inactive);
 
 /// 桌面窗口只是失焦时，是否仍算「在前台」。
 ///
@@ -69,11 +75,13 @@ class DesktopPlatform with WindowListener {
   Timer? _readerTimer;
 
   Stream<dynamic> events(String name) =>
-      (_events[name] ??= StreamController<dynamic>.broadcast()).stream;
+      isLinuxDesktop && name == 'fqapp/system_tts_events'
+          ? EventChannel(name).receiveBroadcastStream()
+          : (_events[name] ??= StreamController<dynamic>.broadcast()).stream;
   void _emit(String name, dynamic event) => _events[name]?.add(event);
 
   Future<void> initialize() async {
-    if (!isWindowsDesktop) return;
+    if (!isDesktopPlatform) return;
     MediaKit.ensureInitialized();
     await windowManager.ensureInitialized();
     PlatformChannels.invoke = invoke;
@@ -97,6 +105,15 @@ class DesktopPlatform with WindowListener {
         await windowManager.focus();
       },
     );
+    if (isLinuxDesktop) {
+      // The native bridge keeps the Android callback contract; no SMTC/SAPI.
+      const MethodChannel('fqapp/native_player').setMethodCallHandler(
+        (call) => PlatformChannels.notify(
+          'fqapp/native_player', call.method, call.arguments,
+        ),
+      );
+      return;
+    }
     _tts.setCompletionHandler(() {
       final id = _utterance;
       if (id != null) {
@@ -180,11 +197,19 @@ class DesktopPlatform with WindowListener {
       }
       _players.clear();
       _utterance = null;
-      await _tts.stop();
+      if (isWindowsDesktop) await _tts.stop();
+      if (isLinuxDesktop) {
+        try {
+          await const MethodChannel('fqapp/system_tts').invokeMethod<void>('shutdown');
+          await const MethodChannel('fqapp/native_player').invokeMethod<void>('stopListenForeground');
+        } catch (error, stack) {
+          AppLog.w('exit', 'Linux 媒体会话释放失败', error: error, stack: stack);
+        }
+      }
       await _smtc?.disableSmtc();
       _readerTimer?.cancel();
       _readerAwake = _playerAwake = false;
-      _updateAwake();
+      await _updateAwake();
     } finally {
       await windowManager.destroy();
     }
@@ -198,6 +223,10 @@ class DesktopPlatform with WindowListener {
     final args = arguments is Map ? arguments : const <dynamic, dynamic>{};
     switch (channel) {
       case 'fqapp/native_player':
+        if (isLinuxDesktop &&
+            (method == 'startListenForeground' || method == 'stopListenForeground')) {
+          return MethodChannel(channel).invokeMethod<dynamic>(method, arguments);
+        }
         if (method == 'create') {
           final id = _nextId++;
           final host = _DesktopPlayer(
@@ -212,7 +241,7 @@ class DesktopPlatform with WindowListener {
         }
         if (method == 'setKeepScreenOn') {
           _playerAwake = args['on'] == true;
-          _updateAwake();
+          await _updateAwake();
           return null;
         }
         if (method == 'startListenForeground') {
@@ -284,8 +313,14 @@ class DesktopPlatform with WindowListener {
       case 'fqapp/reader':
         return _reader(method, args);
       case 'fqapp/system_tts':
+        if (isLinuxDesktop) {
+          return MethodChannel(channel).invokeMethod<dynamic>(method, arguments);
+        }
         return _speech(method, args);
       case 'fqapp/fanqie_account':
+        if (isLinuxDesktop) {
+          return MethodChannel(channel).invokeMethod<dynamic>(method, arguments);
+        }
         if (method == 'login') {
           final context = navigatorKey.currentContext;
           if (context == null) {
@@ -386,14 +421,14 @@ class DesktopPlatform with WindowListener {
         return true;
       case 'keepScreenOn':
         _readerAwake = args['on'] == true;
-        _updateAwake();
+        await _updateAwake();
         return null;
       case 'stop':
       case 'suspend':
         _readerTimer?.cancel();
         readerBrightness.value = 1;
         _readerAwake = false;
-        _updateAwake();
+        await _updateAwake();
         return null;
       case 'setImmersive':
         return null;
@@ -430,7 +465,13 @@ class DesktopPlatform with WindowListener {
     'timestamp': DateTime.now().millisecondsSinceEpoch,
     'systemBrightness': 1.0,
   };
-  void _updateAwake() {
+  Future<void> _updateAwake() async {
+    if (isLinuxDesktop) {
+      await const MethodChannel('fqapp/desktop_session').invokeMethod<void>(
+        'setKeepScreenOn', {'on': _readerAwake || _playerAwake},
+      );
+      return;
+    }
     final call = DynamicLibrary.open('kernel32.dll')
         .lookupFunction<Uint32 Function(Uint32), int Function(int)>(
           'SetThreadExecutionState',
@@ -555,15 +596,30 @@ String decodeDesktopText(Uint8List bytes) {
   if (bytes.length >= 2 &&
       ((bytes[0] == 255 && bytes[1] == 254) ||
           (bytes[0] == 254 && bytes[1] == 255))) {
+    if (bytes.length.isOdd) {
+      throw const FormatException('UTF-16 TXT 字节不完整');
+    }
     final little = bytes[0] == 255;
-    return String.fromCharCodes([
+    final units = [
       for (var i = 2; i + 1 < bytes.length; i += 2)
         little ? bytes[i] | bytes[i + 1] << 8 : bytes[i] << 8 | bytes[i + 1],
-    ]);
+    ];
+    for (var i = 0; i < units.length; i++) {
+      final unit = units[i];
+      if (unit >= 0xd800 && unit <= 0xdbff) {
+        if (++i >= units.length || units[i] < 0xdc00 || units[i] > 0xdfff) {
+          throw const FormatException('UTF-16 TXT 代理对不完整');
+        }
+      } else if (unit >= 0xdc00 && unit <= 0xdfff) {
+        throw const FormatException('UTF-16 TXT 代理对无效');
+      }
+    }
+    return String.fromCharCodes(units);
   }
   try {
     return utf8.decode(bytes).replaceFirst(RegExp('^\uFEFF'), '');
   } on FormatException {
+    if (Platform.isLinux) return _decodeGb18030(bytes);
     final convert = DynamicLibrary.open('kernel32.dll')
         .lookupFunction<
           Int32 Function(
@@ -591,6 +647,50 @@ String decodeDesktopText(Uint8List bytes) {
       calloc.free(input);
       if (output != nullptr) calloc.free(output);
     }
+  }
+}
+
+
+// glibc provides GB18030 including four-byte characters; malformed input fails.
+String _decodeGb18030(Uint8List bytes) {
+  final libc = DynamicLibrary.open('libc.so.6');
+  final open = libc.lookupFunction<
+    Pointer<Void> Function(Pointer<Utf8>, Pointer<Utf8>),
+    Pointer<Void> Function(Pointer<Utf8>, Pointer<Utf8>)>('iconv_open');
+  final convert = libc.lookupFunction<
+    UintPtr Function(Pointer<Void>, Pointer<Pointer<Uint8>>, Pointer<UintPtr>, Pointer<Pointer<Uint8>>, Pointer<UintPtr>),
+    int Function(Pointer<Void>, Pointer<Pointer<Uint8>>, Pointer<UintPtr>, Pointer<Pointer<Uint8>>, Pointer<UintPtr>)>('iconv');
+  final close = libc.lookupFunction<Int32 Function(Pointer<Void>), int Function(Pointer<Void>)>('iconv_close');
+  final from = 'GB18030'.toNativeUtf8();
+  final to = 'UTF-8'.toNativeUtf8();
+  final descriptor = open(to, from);
+  calloc.free(from);
+  calloc.free(to);
+  if (descriptor.address == Pointer<Void>.fromAddress(-1).address) {
+    throw const FormatException('系统不支持 GB18030');
+  }
+  final input = calloc<Uint8>(bytes.length);
+  final capacity = bytes.length * 4 + 4;
+  final output = calloc<Uint8>(capacity);
+  final inPtr = calloc<Pointer<Uint8>>()..value = input;
+  final outPtr = calloc<Pointer<Uint8>>()..value = output;
+  final inLeft = calloc<UintPtr>()..value = bytes.length;
+  final outLeft = calloc<UintPtr>()..value = capacity;
+  try {
+    input.asTypedList(bytes.length).setAll(0, bytes);
+    final result = convert(descriptor, inPtr, inLeft, outPtr, outLeft);
+    if (result != 0 || inLeft.value != 0) {
+      throw const FormatException('无法识别 TXT 编码或 GB18030 字节损坏');
+    }
+    return utf8.decode(output.asTypedList(capacity - outLeft.value));
+  } finally {
+    close(descriptor);
+    calloc.free(input);
+    calloc.free(output);
+    calloc.free(inPtr);
+    calloc.free(outPtr);
+    calloc.free(inLeft);
+    calloc.free(outLeft);
   }
 }
 

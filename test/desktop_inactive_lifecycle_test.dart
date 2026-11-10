@@ -40,6 +40,15 @@ void main() {
     }
   });
 
+  test('Windows and Linux video focus does not trigger background pause', () {
+    for (final platform in [TargetPlatform.windows, TargetPlatform.linux]) {
+      debugDefaultTargetPlatformOverride = platform;
+      expect(playbackAppIsActive(AppLifecycleState.inactive), isTrue);
+      expect(playbackAppIsActive(AppLifecycleState.hidden), isFalse);
+      expect(playbackAppIsActive(AppLifecycleState.detached), isFalse);
+    }
+  });
+
   test('移动端失焦仍按后台处理（来电、下拉通知栏等打断）', () {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     expect(desktopInactiveStillVisible(AppLifecycleState.inactive), isFalse);
