@@ -1,0 +1,21 @@
+test/linux_profile_ownership_test.dart
+  s_73a14774e35879::t_6db8ee51562c02 71-91
+lib/services/linux_profile_ownership.dart
+  s_73a14774e35879::t_6db8ee51562c02 50-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "04a1376eb445b2cbad9b35b3575f82a9863cc67f",
+  "prompts": {},
+  "sessions": {
+    "s_73a14774e35879": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c43b-e348-7d01-b834-096a8f29cf29",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
