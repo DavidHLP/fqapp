@@ -1,0 +1,21 @@
+lib/main.dart
+  s_52fe13dd90b35d::t_6a4270c3a07106 97-99
+test/app_bootstrap_test.dart
+  s_52fe13dd90b35d::t_b9b793692efad3 274
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "303f5c1c2c6776e13fe3852559b60cc7d8bbafd1",
+  "prompts": {},
+  "sessions": {
+    "s_52fe13dd90b35d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c555-9327-7c92-a857-b42ddb1fb260",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
