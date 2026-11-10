@@ -96,3 +96,11 @@ separately flags residual /home/ diagnostic strings and validates loader paths;
 only relocatable $ORIGIN and the system Java server path are published. A residual
 diagnostic URI is not an executable loader search path. No bit reproducibility or
 complete asset rights audit is claimed.
+
+Startup diagnosis: check `command -v xdg-user-dir` and run
+`xdg-user-dir DOCUMENTS` in the affected user session before investigating the
+renderer. The Arch package requires `xdg-user-dirs`; `xdg-utils` alone is
+insufficient. Backend startup success is recorded as `backend healthy` in the
+application support directory backend log; external HTTP health requests need
+the session capability. X11 probes must follow reparented windows and use the
+process ID, since window_manager changes the visible title to 什锦铺.

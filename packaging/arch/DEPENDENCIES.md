@@ -14,6 +14,10 @@ No install script, service, keyring read, app startup or data cleanup hook exist
   is retained and needs `java-runtime>=17`; its RUNPATH uses Arch's
   `/usr/lib/jvm/default-runtime/lib/server`. A configured default runtime is
   required. No host SDK path is retained in loader search paths.
+- Runtime executable: `xdg-user-dirs` provides `xdg-user-dir DOCUMENTS`,
+  required by the locked path_provider_linux/xdg_directories documents lookup
+  before Linux profile ownership and key initialization. `xdg-utils` does not
+  provide it. Missing it blocks fresh startup even when ELF dependencies resolve.
 - Services: D-Bus session bus, a working `org.freedesktop.secrets` provider for
   encrypted storage, desktop portal plus a backend matching the desktop where
   needed, URL opener via xdg-utils. Provider/backend selection belongs to the

@@ -1,7 +1,7 @@
 # Local source archive from the exact delivery commit; see LINUX.md.
 pkgname=fqapp
 pkgver=1.0.201
-pkgrel=1
+pkgrel=2
 pkgdesc='fqapp Linux desktop client (draft validation build)'
 arch=('x86_64')
 url='https://github.com/DavidHLP/fqapp'
@@ -9,7 +9,7 @@ license=('GPL-3.0-only')
 depends=('glibc' 'libgcc' 'libstdc++' 'gtk3' 'glib2' 'pango' 'cairo'
          'gdk-pixbuf2' 'at-spi2-core' 'harfbuzz' 'zlib' 'fontconfig'
          'libsecret' 'mpv' 'libepoxy' 'libglvnd' 'libx11' 'dbus'
-         'xdg-utils' 'hicolor-icon-theme' 'java-runtime>=17'
+         'xdg-utils' 'xdg-user-dirs' 'hicolor-icon-theme' 'java-runtime>=17'
          'webkit2gtk-4.1' 'libspeechd' 'speech-dispatcher' 'espeak-ng'
          'xdg-desktop-portal')
 optdepends=('org.freedesktop.secrets: encrypted storage (choose your desktop provider)'
