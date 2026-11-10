@@ -134,6 +134,26 @@ void main() {
     },
   );
 
+  test(
+    'exit waits for physical shutdown beyond the ordinary timeout',
+    () async {
+      final transport = _FakeRustTransport(blockStop: true);
+      final backend = createBackend(
+        transport: transport,
+        shutdownTimeout: const Duration(milliseconds: 1),
+      );
+      await backend.start();
+      var closed = false;
+      final closing = backend.stopForExit().then((_) => closed = true);
+      await transport.stopEntered.future;
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(closed, isFalse);
+      transport.allowStop.complete();
+      await closing;
+      expect(backend.isRunning, isFalse);
+    },
+  );
+
   test('stop during deployment waits and shuts the core down', () async {
     final assets = _BackendAssets(blockFirstLoad: true);
     final transport = _FakeRustTransport();

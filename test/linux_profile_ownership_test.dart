@@ -46,6 +46,10 @@ void main() {
     final restarted = await Process.run(dart, arguments);
     expect(restarted.exitCode, 0);
     expect(restarted.stdout, contains('owned'));
+    final written = await Process.run(dart, [...arguments, 'hive-write']);
+    expect(written.exitCode, 0, reason: '${written.stderr}');
+    final readback = await Process.run(dart, [...arguments, 'hive-read']);
+    expect(readback.exitCode, 0, reason: '${readback.stderr}');
   });
 
   test('profile path guard rejects a different Hive directory', () async {

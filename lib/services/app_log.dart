@@ -487,6 +487,13 @@ class AppLog with WidgetsBindingObserver {
   String exportText({int? maxLines}) =>
       formatLogLines(entries, maxLines: maxLines);
 
+  Future<void> stopPersistence() async {
+    _stopFlushTimer();
+    await _pendingWrite;
+    await _file?.close();
+    _file = null;
+  }
+
   @visibleForTesting
   Future<void> resetForTest() async {
     uninstall();

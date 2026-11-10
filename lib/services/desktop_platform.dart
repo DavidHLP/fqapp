@@ -69,6 +69,7 @@ class DesktopPlatform with WindowListener {
   int _nextId = 1000000;
   bool _closing = false;
   Future<void> Function()? beforeClose;
+  Future<void> Function()? afterClose;
   bool _readerAwake = false;
   bool _playerAwake = false;
   String? _readerSession;
@@ -189,9 +190,7 @@ class DesktopPlatform with WindowListener {
     if (_closing) return;
     _closing = true;
     try {
-      try {
-        await beforeClose?.call();
-      } catch (_) {}
+      await beforeClose?.call();
       for (final host in _players.values.toList()) {
         await host.dispose();
       }
@@ -200,8 +199,12 @@ class DesktopPlatform with WindowListener {
       if (isWindowsDesktop) await _tts.stop();
       if (isLinuxDesktop) {
         try {
-          await const MethodChannel('fqapp/system_tts').invokeMethod<void>('shutdown');
-          await const MethodChannel('fqapp/native_player').invokeMethod<void>('stopListenForeground');
+          await const MethodChannel(
+            'fqapp/system_tts',
+          ).invokeMethod<void>('shutdown');
+          await const MethodChannel(
+            'fqapp/native_player',
+          ).invokeMethod<void>('stopListenForeground');
         } catch (error, stack) {
           AppLog.w('exit', 'Linux 媒体会话释放失败', error: error, stack: stack);
         }
@@ -210,8 +213,11 @@ class DesktopPlatform with WindowListener {
       _readerTimer?.cancel();
       _readerAwake = _playerAwake = false;
       await _updateAwake();
-    } finally {
+      await afterClose?.call();
       await windowManager.destroy();
+    } catch (error, stack) {
+      _closing = false;
+      AppLog.e('exit', '关闭未完成，资料所有权保持锁定，请重试关闭', error: error, stack: stack);
     }
   }
 

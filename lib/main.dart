@@ -14,6 +14,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 
 import 'dart:async';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'services/linux_profile_ownership.dart';
+import 'services/secure_key_provider.dart';
 
 import 'pages/home_page.dart';
 import 'pages/audio_page.dart';
@@ -64,27 +68,45 @@ Future<void> main() async {
   // 噪声里。因此整条启动流程收进同一个受保护的 Zone。
   await runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
-    // 装配失败不许挡住界面：记一条错误后照常 runApp，各页面自行退化。
-    try {
-      await _prepareRuntime();
-    } catch (error, stack) {
-      AppLog.e('main', '启动装配失败，继续挂载界面', error: error, stack: stack);
+    if (!Platform.isLinux) {
+      try {
+        await _prepareRuntime();
+      } catch (error, stack) {
+        AppLog.e('main', '启动装配失败，继续挂载界面', error: error, stack: stack);
+      }
+      runApp(const ProviderScope(child: FqApp()));
+      return;
     }
-    runApp(const ProviderScope(child: FqApp()));
+    runApp(
+      MaterialApp(
+        home: AppBootstrap(
+          initializer: _prepareRuntime,
+          failureHelp:
+              '请关闭其他 fqapp 实例后重试；若仍失败，请检查资料目录权限和 Secret Service。不要删除资料、密钥或未决标记。',
+          child: const ProviderScope(child: FqApp()),
+        ),
+      ),
+    );
   }, (error, stack) => AppLog.e('zone', '未捕获异步异常', error: error, stack: stack));
 }
 
-/// `runApp` 之前的运行时装配：桌面窗口回调、应用内日志、分享与 Rust 日志的桥。
-/// 这些都不决定界面能不能起来，所以失败只记日志（见 [main]）。
+/// 业务页面挂载之前的运行时装配：桌面窗口回调、应用内日志、分享与 Rust 日志的桥。
+/// 装配失败由外层启动门阻止业务页面挂载；持锁保留现场以供重试。
 Future<void> _prepareRuntime() async {
-  // T09/T13: acquire Linux profile ownership before this function writes logs
-  // or starts any key/runtime work; wire the security initialization here.
+  if (Platform.isLinux) {
+    final root = await getApplicationSupportDirectory();
+    LinuxProfileOwnership.current ??= await LinuxProfileOwnership.acquire(root);
+    LinuxProfileOwnership.requireCurrent().requireProfileDirectory(root.path);
+    if (await SecureKeyProvider.instance.getOrCreateKey() == null) {
+      throw StateError('Hive 密钥未确认，启动已阻止');
+    }
+  }
   registerPortedUiLicenses();
   if (isDesktopPlatform) await DesktopPlatform.instance.initialize();
   // 应用内日志：接管 debugPrint 与 FlutterError.onError，未处理异步异常由
   // [main] 的 runZonedGuarded 捕获；文件持久化异步开启，失败只退回内存模式。
   AppLog.instance.install();
-  unawaited(AppLog.instance.startPersistence());
+  await AppLog.instance.startPersistence();
   // 短剧分享的「系统分享」走 Android 的 Intent.ACTION_SEND
   //（官方同一条路径）。桥不可用时 PlayletShare 自动降级为复制链接，
   // 不会把失败说成成功。
@@ -101,29 +123,38 @@ Future<void> _prepareRuntime() async {
   RustLogSource.reader = BackendService.instance.readRustLog;
   if (isDesktopPlatform) {
     DesktopPlatform.instance.beforeClose = () async {
-      DramaDownloader.instance.pauseAll();
-      AudioDownloader.instance.pauseAll();
-      await FairMemoryService.instance.flushForExit();
       try {
-        await NativePlayer.pauseOthers();
-      } catch (error, stack) {
-        // 退出路径继续往下走，但失败要留痕：否则「关闭后还有声音」无从查起。
-        AppLog.w('exit', '退出前暂停播放器失败', error: error, stack: stack);
+        await _localDataStartup;
+      } catch (_) {}
+      if (!await FairMemoryService.instance.flushForExit()) {
+        throw StateError('进度尚未保存，保留资料所有权，请重试关闭');
       }
-      try {
-        await BackendService.instance.stop();
-      } catch (error, stack) {
-        AppLog.w('exit', '退出前停止后端失败', error: error, stack: stack);
-      }
+      runApp(const SizedBox.shrink());
+      await WidgetsBinding.instance.endOfFrame;
+      await Future.wait([
+        DramaDownloader.instance.stopForExit(),
+        AudioDownloader.instance.stopForExit(),
+      ]);
+      await NativePlayer.pauseOthers();
+    };
+    DesktopPlatform.instance.afterClose = () async {
+      await BackendService.instance.stopForExit();
       await Hive.close();
+      await AppLog.instance.stopPersistence();
+      await LinuxProfileOwnership.current?.close();
     };
   }
 }
 
-Future<void> _initializeLocalData() async {
-  // Linux profile ownership must be acquired here before Hive, keys or runtime.
-  // T09/T13 supplies the fail-closed initialization hook at this boundary.
-  await Hive.initFlutter();
+Future<void>? _localDataStartup;
+Future<void> _initializeLocalData() => _localDataStartup = _loadLocalData();
+
+Future<void> _loadLocalData() async {
+  if (Platform.isLinux) {
+    Hive.init(LinuxProfileOwnership.requireCurrent().directory.path);
+  } else {
+    await Hive.initFlutter();
+  }
   // 以下初始化互相独立（各开各的 box / 各读各的配置），串行等只会把
   // 磁盘 I/O 叠加到冷启动里；并行发起，失败语义与串行时一致：必需项
   // （书架/历史）失败仍使启动失败，可选项各自吞错退化。
@@ -190,12 +221,12 @@ Future<void> _initializeLocalData() async {
     optional(AiReadingController.instance.init),
   ]);
   // 听书后台播放开关：异步读取 SharedPreferences，失败退化为默认开启。
-  unawaited(AudioPreferences.instance.load());
+  await optional(AudioPreferences.instance.load);
   // 短剧「边看边往后缓存」的开关与集数：同一条装配链里读，避免播放页
   // 起来时还没加载完、拿默认值把用户关掉的开关又打开。
-  unawaited(DramaCachePreferences.instance.load());
+  await optional(DramaCachePreferences.instance.load);
   // 短剧切后台悬浮窗开关（#24）：异步读取，失败退化为默认关闭。
-  unawaited(PlayerPreferences.loadFloatingWindow());
+  await optional(PlayerPreferences.loadFloatingWindow);
   // 离线缓存的网络门（官方 onNetChangeCheck）：断网/只剩计费链路时
   // 自动暂停下载队列，半成品保留。监听失败只退化为「无自动暂停」。
   try {
@@ -216,7 +247,7 @@ Future<void> _initializeLocalData() async {
     AppLog.w('startup', '连通性监听注册失败，自动暂停下载不可用');
   }
   // 海报缓存的字节预算清扫：超额时删最旧的图。失败不影响任何页面。
-  unawaited(PosterCache.instance.enforceBudget());
+  await optional(PosterCache.instance.enforceBudget);
   // 小米澎湃 OS 公平运行内存：注册 TRIM/KILL 通道回调。必须在启动时构造，
   // 否则广播到达时 Dart 侧还没有处理函数，原生侧只能按“未处理”回。
   FairMemoryService.instance.init();
@@ -344,6 +375,7 @@ class _FqAppState extends State<FqApp> {
                         GlobalMaterialLocalizations.delegates,
                     home: AppBootstrap(
                       backendStarter: BackendService.instance.start,
+                      backendMustSucceed: Platform.isLinux,
                       child: const RootShell(),
                     ),
                   ),
@@ -382,12 +414,16 @@ class _FqAppState extends State<FqApp> {
 class AppBootstrap extends StatefulWidget {
   final Widget child;
   final Future<void> Function()? initializer;
+  final String failureHelp;
+  final bool backendMustSucceed;
   final Future<void> Function()? backendStarter;
 
   const AppBootstrap({
     super.key,
     required this.child,
     this.initializer,
+    this.failureHelp = '请检查设备可用空间、密钥服务和资料权限后重试；请勿删除资料或密钥。',
+    this.backendMustSucceed = false,
     this.backendStarter,
   });
 
@@ -415,19 +451,29 @@ class _AppBootstrapState extends State<AppBootstrap> {
     });
     // Start the backend before awaiting local data (see class doc): the
     // two chains run concurrently; a retry must not start it twice.
-    _backendFuture ??= widget.backendStarter?.call();
+    try {
+      _backendFuture ??= widget.backendStarter?.call();
+    } catch (_) {
+      setState(() {
+        _failed = true;
+        _initializing = false;
+      });
+      return;
+    }
     // Attach a no-op error handler so a backend failure is never reported
     // as an unhandled async error if RootShell never mounts to await the
     // same future (e.g. local-data init keeps failing). RootShell awaiting
     // the original future still observes the error.
     unawaited(_backendFuture?.then<void>((_) {}, onError: (_) {}));
     try {
+      if (widget.backendMustSucceed) await _backendFuture;
       await (widget.initializer ?? _initializeLocalData)();
       if (mounted) setState(() => _ready = true);
     } catch (_) {
       // 这里不写日志：启动失败发生在持久化开启之前，而 AppLog 的写入会排到
       // 那条尚未完成的 I/O 之后（test/app_bootstrap_test.dart 的失败路径用例
       // 因此会挂到超时）。失败本身已经由界面的重试入口与 runZonedGuarded 呈现。
+      if (widget.backendMustSucceed) _backendFuture = null;
       if (mounted) setState(() => _failed = true);
     } finally {
       _initializing = false;
@@ -456,7 +502,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
                 Text(_failed ? '无法读取本地数据' : '正在读取本地数据…'),
                 if (_failed) ...[
                   const SizedBox(height: 8),
-                  const Text('请检查设备可用空间后重试。', textAlign: TextAlign.center),
+                  Text(widget.failureHelp, textAlign: TextAlign.center),
                   const SizedBox(height: 16),
                   OutlinedButton(
                     onPressed: _initialize,

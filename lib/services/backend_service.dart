@@ -45,6 +45,7 @@ class BackendService {
   final Duration shutdownTimeout;
 
   Future<void>? _startFuture;
+  Future<void>? _physicalStart;
   Future<void>? _stopFuture;
   bool _running = false;
   bool _coreStarted = false;
@@ -210,6 +211,7 @@ class BackendService {
     _startupTimer = timer;
     late final Future<void> tracked;
     final operation = _startInternal(generation, clock, stopping);
+    _physicalStart = operation;
     tracked = Future.any<void>([operation, timeout.future]).whenComplete(() {
       if (identical(_startupTimer, timer)) {
         timer.cancel();
@@ -412,6 +414,22 @@ class BackendService {
     });
     _stopFuture = tracked;
     return tracked;
+  }
+
+  /// Physical completion is required before releasing Linux profile ownership.
+  Future<void> stopForExit() async {
+    cancelStartupTimeout();
+    try {
+      await _physicalStart;
+    } catch (_) {}
+    if (_transport is RustBackendTransport) {
+      await _transport.stop();
+      _coreStarted = false;
+      _coreGeneration = null;
+      _running = false;
+    }
+    await _logWriteQueue;
+    _logFile = null;
   }
 
   Future<void> _stopInternal() async {

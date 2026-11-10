@@ -6,11 +6,97 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fqapp/main.dart' as app;
 import 'package:fqapp/services/app_log.dart';
+import 'package:fqapp/services/linux_profile_ownership.dart';
 import 'package:fqapp/services/library_store.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('ownership failure blocks runtime and all business bootstrap', (
+    tester,
+  ) async {
+    var runtimeWrites = 0;
+    var backendWrites = 0;
+    var hiveWrites = 0;
+    var fail = true;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: app.AppBootstrap(
+          initializer: () async {
+            if (fail) throw StateError('profile locked');
+            runtimeWrites++;
+          },
+          child: app.AppBootstrap(
+            backendStarter: () async {
+              backendWrites++;
+            },
+            initializer: () async {
+              hiveWrites++;
+            },
+            child: const Text('business'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect([runtimeWrites, backendWrites, hiveWrites], [0, 0, 0]);
+    expect(find.text('business'), findsNothing);
+    fail = false;
+    await tester.tap(find.text('重试'));
+    await tester.pumpAndSettle();
+    expect([runtimeWrites, backendWrites, hiveWrites], [1, 1, 1]);
+    expect(find.text('business'), findsOneWidget);
+  });
+
+  testWidgets('required backend failure blocks local writes and retries', (
+    tester,
+  ) async {
+    var attempts = 0;
+    var localWrites = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: app.AppBootstrap(
+          backendMustSucceed: true,
+          backendStarter: () async {
+            if (++attempts == 1) throw StateError('pool key unavailable');
+          },
+          initializer: () async {
+            localWrites++;
+          },
+          child: const Text('business'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(localWrites, 0);
+    expect(find.text('business'), findsNothing);
+    await tester.tap(find.text('重试'));
+    await tester.pumpAndSettle();
+    expect(attempts, 2);
+    expect(localWrites, 1);
+  });
+
+  testWidgets('synchronous backend hook failure remains retryable', (
+    tester,
+  ) async {
+    var localWrites = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: app.AppBootstrap(
+          backendStarter: () => throw StateError('hook failed'),
+          initializer: () async {
+            localWrites++;
+          },
+          child: const Text('business'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(localWrites, 0);
+    expect(find.text('无法读取本地数据'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('retrying initialization retains existing Hive history', (
     tester,
   ) async {
@@ -18,6 +104,7 @@ void main() {
     final tempRoot = Directory.systemTemp.absolute;
     late Directory directory;
     late Box<dynamic> history;
+    late LinuxProfileOwnership owner;
     final record = {
       'id': 'kept',
       'kind': 'book',
@@ -28,18 +115,23 @@ void main() {
     };
     await tester.runAsync(() async {
       directory = await tempRoot.createTemp('fqapp-bootstrap-');
+      owner = await LinuxProfileOwnership.acquire(
+        directory,
+        keyNamespaceDirectory: directory,
+      );
       Hive.init(directory.path);
-      history = await Hive.openBox<dynamic>('history');
-      await Hive.openBox<dynamic>('read_time');
+      history = await Hive.openBox<dynamic>('history_enc');
+      await Hive.openBox<dynamic>('read_time_enc');
       // 已看集 box 也在 LibraryStore.init 里开箱（F07），同样要预开，
       // 否则 openBox 落在 widget 测试的 fake-async 路径上不会完成。
-      await Hive.openBox<dynamic>('watched_episodes');
+      await Hive.openBox<dynamic>('watched_episodes_enc');
       await history.put('kept', record);
     });
     addTearDown(() async {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.runAsync(() async {
         await Hive.close();
+        await owner.close();
         if (directory.absolute.parent.path != tempRoot.path) {
           throw StateError('Temporary directory escaped its parent');
         }
@@ -179,7 +271,7 @@ void main() {
     messenger.setMockMethodCallHandler(channel, (call) async {
       // 只统计引导用的文档目录（Hive.initFlutter）；应用日志落盘会另探一次
       // 支持目录（getApplicationSupportDirectory），与本用例的「重试一次」无关。
-      if (call.method == 'getApplicationDocumentsDirectory') attempts++;
+      if (call.method == 'getApplicationSupportDirectory') attempts++;
       throw PlatformException(
         code: 'unavailable',
         message: 'private-storage-path',

@@ -113,7 +113,7 @@ class AudioDownloader extends ValueNotifier<List<AudioDownloadTask>> {
   Future<void> enqueue({
     required CachedAudioBook book,
     required List<Chapter> chapters,
-  }) async {
+  }) => _track(() async {
     if (chapters.isEmpty) return;
     if (book.bookId.isEmpty) throw ArgumentError('Empty book id');
     for (final chapter in chapters) {
@@ -175,7 +175,7 @@ class AudioDownloader extends ValueNotifier<List<AudioDownloadTask>> {
       _publish();
       unawaited(_pump());
     }
-  }
+  });
 
   static String taskId(String itemId, String toneId) => '$itemId|$toneId';
 
@@ -214,6 +214,26 @@ class AudioDownloader extends ValueNotifier<List<AudioDownloadTask>> {
     );
     _publish();
     unawaited(_pump());
+  }
+
+  bool _stopping = false;
+  final Set<Future<void>> _operations = {};
+
+  Future<void> _track(Future<void> Function() action) {
+    if (_stopping) return Future<void>.value();
+    late final Future<void> operation;
+    operation = action().whenComplete(() => _operations.remove(operation));
+    _operations.add(operation);
+    return operation;
+  }
+
+  Future<void> stopForExit() async {
+    _stopping = true;
+    pauseAll();
+    await Future.wait(_runs.values.map((run) => run.terminal));
+    while (_operations.isNotEmpty) {
+      await Future.wait(_operations.toList());
+    }
   }
 
   void pauseAll({String? reason}) {
@@ -262,33 +282,34 @@ class AudioDownloader extends ValueNotifier<List<AudioDownloadTask>> {
     unawaited(_pump());
   }
 
-  Future<void> _prepareForResume(String key, _MutableTask task) async {
-    if (task.prepared) return;
-    final generation = task.generation;
-    try {
-      await _waitDeletion(key);
-      if (!identical(_tasks[key], task) || task.generation != generation) {
-        return;
-      }
-      await _store.ensureBook(task.catalogue);
-      if (!identical(_tasks[key], task) || task.generation != generation) {
-        return;
-      }
-      task.prepared = true;
-    } catch (error) {
-      if (identical(_tasks[key], task) &&
-          task.generation == generation &&
-          task.snapshot.status == AudioDownloadStatus.waiting) {
-        task.snapshot = task.snapshot.copyWith(
-          status: AudioDownloadStatus.failed,
-          error: '$error',
-        );
-      }
-    } finally {
-      _publish();
-      unawaited(_pump());
-    }
-  }
+  Future<void> _prepareForResume(String key, _MutableTask task) =>
+      _track(() async {
+        if (task.prepared) return;
+        final generation = task.generation;
+        try {
+          await _waitDeletion(key);
+          if (!identical(_tasks[key], task) || task.generation != generation) {
+            return;
+          }
+          await _store.ensureBook(task.catalogue);
+          if (!identical(_tasks[key], task) || task.generation != generation) {
+            return;
+          }
+          task.prepared = true;
+        } catch (error) {
+          if (identical(_tasks[key], task) &&
+              task.generation == generation &&
+              task.snapshot.status == AudioDownloadStatus.waiting) {
+            task.snapshot = task.snapshot.copyWith(
+              status: AudioDownloadStatus.failed,
+              error: '$error',
+            );
+          }
+        } finally {
+          _publish();
+          unawaited(_pump());
+        }
+      });
 
   void _resumeTask(_MutableTask task) {
     task.generation++;
@@ -345,7 +366,7 @@ class AudioDownloader extends ValueNotifier<List<AudioDownloadTask>> {
     return Future<void>.value();
   }
 
-  Future<void> _deleteIdle(String key, _AudioRun run) async {
+  Future<void> _deleteIdle(String key, _AudioRun run) => _track(() async {
     try {
       await run.closeIO();
       await _cleanup(run);
@@ -354,12 +375,12 @@ class AudioDownloader extends ValueNotifier<List<AudioDownloadTask>> {
     } finally {
       _finish(key, run);
     }
-  }
+  });
 
   Future<void> _retryCleanup(String key, _AudioRun run) {
     final pending = run.cleanupOperation;
     if (pending != null) return pending;
-    final operation = () async {
+    final operation = _track(() async {
       try {
         await run.closeIO();
         if (run.discardRequested ||
@@ -386,7 +407,7 @@ class AudioDownloader extends ValueNotifier<List<AudioDownloadTask>> {
         _publish();
         unawaited(_pump());
       }
-    }();
+    });
     run.cleanupOperation = operation;
     return operation;
   }
@@ -426,7 +447,7 @@ class AudioDownloader extends ValueNotifier<List<AudioDownloadTask>> {
 
   void _onStoreChanged() => unawaited(_forgetRemovedDownloads());
 
-  Future<void> _forgetRemovedDownloads({String? onlyKey}) async {
+  Future<void> _forgetRemovedDownloads({String? onlyKey}) => _track(() async {
     final completed = [
       for (final entry in _tasks.entries)
         if (entry.value.snapshot.status == AudioDownloadStatus.completed &&
@@ -455,12 +476,12 @@ class AudioDownloader extends ValueNotifier<List<AudioDownloadTask>> {
     } catch (_) {
       // Optional store reads do not retire a live reservation.
     }
-  }
+  });
 
   void _publish() => value = [for (final task in _tasks.values) task.snapshot];
 
-  Future<void> _pump() async {
-    if (_pumping) return;
+  Future<void> _pump() => _track(() async {
+    if (_pumping || _stopping) return;
     _pumping = true;
     try {
       while (_active.length < concurrency) {
@@ -498,7 +519,7 @@ class AudioDownloader extends ValueNotifier<List<AudioDownloadTask>> {
     } finally {
       _pumping = false;
     }
-  }
+  });
 
   void _check(String key, _AudioRun run) {
     run.check();

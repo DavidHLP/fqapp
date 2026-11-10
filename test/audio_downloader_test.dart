@@ -276,6 +276,34 @@ void main() {
     fail('download did not settle: ${engine.value.map((t) => t.status)}');
   }
 
+  test(
+    'exit waits for an unresolved download and prevents a new queue',
+    () async {
+      final source = Completer<AudioSource>();
+      final entered = Completer<void>();
+      final engine = downloader(
+        resolve: (_, item, tone) {
+          entered.complete();
+          return source.future;
+        },
+      );
+      await engine.enqueue(book: book(), chapters: [chapterOne()]);
+      await entered.future;
+      var closed = false;
+      final closing = engine.stopForExit().then((_) => closed = true);
+      await Future<void>.delayed(Duration.zero);
+      expect(closed, isFalse);
+      source.complete(
+        AudioSource(itemId: 'ch1', toneId: 'toneA', url: cdn.url),
+      );
+      await closing;
+      final count = engine.value.length;
+      await engine.enqueue(book: book(), chapters: book().chapters);
+      expect(engine.value.length, count);
+      expect(store.chapters, isEmpty);
+    },
+  );
+
   test('downloads a chapter, writes the file and records the key', () async {
     final engine = downloader();
     await engine.enqueue(book: book(), chapters: [chapterOne()]);

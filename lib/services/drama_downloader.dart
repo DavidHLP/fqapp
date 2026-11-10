@@ -117,7 +117,7 @@ class DramaDownloader extends ValueNotifier<List<DramaDownloadTask>> {
     required List<Chapter> episodes,
     bool auto = false,
     int? maxHeight,
-  }) async {
+  }) => _track(() async {
     if (episodes.isEmpty) return;
     if (drama.id.isEmpty) throw ArgumentError('Empty series id');
     for (final episode in episodes) {
@@ -208,7 +208,7 @@ class DramaDownloader extends ValueNotifier<List<DramaDownloadTask>> {
       _publish();
       unawaited(_pump());
     }
-  }
+  });
 
   List<DramaDownloadTask> tasksFor(String seriesId) => [
     for (final task in value)
@@ -230,6 +230,26 @@ class DramaDownloader extends ValueNotifier<List<DramaDownloadTask>> {
     );
     _publish();
     unawaited(_pump());
+  }
+
+  bool _stopping = false;
+  final Set<Future<void>> _operations = {};
+
+  Future<void> _track(Future<void> Function() action) {
+    if (_stopping) return Future<void>.value();
+    late final Future<void> operation;
+    operation = action().whenComplete(() => _operations.remove(operation));
+    _operations.add(operation);
+    return operation;
+  }
+
+  Future<void> stopForExit() async {
+    _stopping = true;
+    pauseAll();
+    await Future.wait(_runs.values.map((run) => run.terminal));
+    while (_operations.isNotEmpty) {
+      await Future.wait(_operations.toList());
+    }
   }
 
   void pauseAll({String? reason}) {
@@ -264,33 +284,34 @@ class DramaDownloader extends ValueNotifier<List<DramaDownloadTask>> {
     unawaited(_pump());
   }
 
-  Future<void> _prepareForResume(String key, _MutableTask task) async {
-    if (task.prepared) return;
-    final generation = task.generation;
-    try {
-      await _waitDeletion(key);
-      if (!identical(_tasks[key], task) || task.generation != generation) {
-        return;
-      }
-      await _store.ensureCatalogue(task.catalogue);
-      if (!identical(_tasks[key], task) || task.generation != generation) {
-        return;
-      }
-      task.prepared = true;
-    } catch (error) {
-      if (identical(_tasks[key], task) &&
-          task.generation == generation &&
-          task.snapshot.status == DramaDownloadStatus.waiting) {
-        task.snapshot = task.snapshot.copyWith(
-          status: DramaDownloadStatus.failed,
-          error: '$error',
-        );
-      }
-    } finally {
-      _publish();
-      unawaited(_pump());
-    }
-  }
+  Future<void> _prepareForResume(String key, _MutableTask task) =>
+      _track(() async {
+        if (task.prepared) return;
+        final generation = task.generation;
+        try {
+          await _waitDeletion(key);
+          if (!identical(_tasks[key], task) || task.generation != generation) {
+            return;
+          }
+          await _store.ensureCatalogue(task.catalogue);
+          if (!identical(_tasks[key], task) || task.generation != generation) {
+            return;
+          }
+          task.prepared = true;
+        } catch (error) {
+          if (identical(_tasks[key], task) &&
+              task.generation == generation &&
+              task.snapshot.status == DramaDownloadStatus.waiting) {
+            task.snapshot = task.snapshot.copyWith(
+              status: DramaDownloadStatus.failed,
+              error: '$error',
+            );
+          }
+        } finally {
+          _publish();
+          unawaited(_pump());
+        }
+      });
 
   void _resumeTask(_MutableTask task) {
     task.generation++;
@@ -328,7 +349,7 @@ class DramaDownloader extends ValueNotifier<List<DramaDownloadTask>> {
     return Future<void>.value();
   }
 
-  Future<void> _deleteIdle(String key, _DramaRun run) async {
+  Future<void> _deleteIdle(String key, _DramaRun run) => _track(() async {
     try {
       await run.closeIO();
       await _cleanup(run);
@@ -337,12 +358,12 @@ class DramaDownloader extends ValueNotifier<List<DramaDownloadTask>> {
     } finally {
       _finish(key, run);
     }
-  }
+  });
 
   Future<void> _retryCleanup(String key, _DramaRun run) {
     final pending = run.cleanupOperation;
     if (pending != null) return pending;
-    final operation = () async {
+    final operation = _track(() async {
       try {
         await run.closeIO();
         if (run.discardRequested ||
@@ -369,7 +390,7 @@ class DramaDownloader extends ValueNotifier<List<DramaDownloadTask>> {
         _publish();
         unawaited(_pump());
       }
-    }();
+    });
     run.cleanupOperation = operation;
     return operation;
   }
@@ -409,7 +430,7 @@ class DramaDownloader extends ValueNotifier<List<DramaDownloadTask>> {
 
   void _onStoreChanged() => unawaited(_forgetRemovedDownloads());
 
-  Future<void> _forgetRemovedDownloads({String? onlyKey}) async {
+  Future<void> _forgetRemovedDownloads({String? onlyKey}) => _track(() async {
     final completed = [
       for (final entry in _tasks.entries)
         if (entry.value.snapshot.status == DramaDownloadStatus.completed &&
@@ -435,12 +456,12 @@ class DramaDownloader extends ValueNotifier<List<DramaDownloadTask>> {
     } catch (_) {
       // Optional store reads do not retire a live reservation.
     }
-  }
+  });
 
   void _publish() => value = [for (final task in _tasks.values) task.snapshot];
 
-  Future<void> _pump() async {
-    if (_pumping) return;
+  Future<void> _pump() => _track(() async {
+    if (_pumping || _stopping) return;
     _pumping = true;
     try {
       while (_active.length < concurrency) {
@@ -474,7 +495,7 @@ class DramaDownloader extends ValueNotifier<List<DramaDownloadTask>> {
     } finally {
       _pumping = false;
     }
-  }
+  });
 
   void _check(String key, _DramaRun run) {
     run.check();

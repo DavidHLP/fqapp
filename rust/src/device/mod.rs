@@ -181,6 +181,7 @@ struct PoolState {
 
 pub struct DevicePool {
     file: PathBuf,
+    strict_key: Option<zeroize::Zeroizing<[u8; 32]>>,
     /// Shared with the commit task, which re-checks the snapshot version.
     state: Arc<Mutex<PoolState>>,
     registrar: Registrar,
@@ -195,7 +196,13 @@ pub struct DevicePool {
 
 impl DevicePool {
     pub async fn new(file: impl AsRef<Path>) -> Result<Arc<Self>, String> {
-        Self::build(file, None).await
+        Self::build(file, None, false).await
+    }
+
+    /// Production init opts into fail-closed Linux persistence; legacy/mock
+    /// constructors retain the historical cross-platform fixture contract.
+    pub async fn for_runtime(file: impl AsRef<Path>) -> Result<Arc<Self>, String> {
+        Self::build(file, None, cfg!(target_os = "linux")).await
     }
 
     /// Pool whose registration traffic is redirected to a local mock origin.
@@ -203,7 +210,7 @@ impl DevicePool {
         file: impl AsRef<Path>,
         origin: impl Into<String>,
     ) -> Result<Arc<Self>, String> {
-        Self::build(file, Some(origin.into())).await
+        Self::build(file, Some(origin.into()), false).await
     }
 
     /// Renames `file` to `<file>.corrupt-<unix-seconds>` and logs `reason`.
@@ -226,10 +233,36 @@ impl DevicePool {
     async fn build(
         file: impl AsRef<Path>,
         mock_origin: Option<String>,
+        strict: bool,
     ) -> Result<Arc<Self>, String> {
         let file = file.as_ref().to_path_buf();
+        let strict_key = if strict {
+            Some(zeroize::Zeroizing::new(
+                pool_crypto::pool_key().ok_or("Linux device pool requires a confirmed key")?,
+            ))
+        } else {
+            None
+        };
         let mut devices = Vec::new();
-        if let Ok(data) = tokio::fs::read(&file).await {
+        if strict {
+            match tokio::fs::read(&file).await {
+                Ok(data) => {
+                    let plain = if pool_crypto::pool_file_is_encrypted(&data) {
+                        pool_crypto::decrypt_pool_file_with_key(
+                            &data,
+                            strict_key.as_ref().unwrap(),
+                        )?
+                    } else {
+                        data
+                    };
+                    devices = serde_json::from_slice::<PoolFile>(&plain)
+                        .map_err(|e| format!("Linux device pool invalid: {e}"))?
+                        .android;
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => return Err(e.to_string()),
+            }
+        } else if let Ok(data) = tokio::fs::read(&file).await {
             if pool_crypto::pool_file_is_encrypted(&data) {
                 // P1-2: encrypted pool file. Decrypt with the provisioned
                 // key; an undecryptable file (wrong key, tampering) is
@@ -291,6 +324,7 @@ impl DevicePool {
         devices.truncate(MAX_POOL_SIZE);
         Ok(Arc::new(DevicePool {
             file,
+            strict_key,
             state: Arc::new(Mutex::new(PoolState {
                 devices,
                 version: 0,
@@ -680,6 +714,19 @@ impl DevicePool {
         if self.is_retired() {
             return Ok(());
         }
+        if let Some(key) = &self.strict_key {
+            if pool_crypto::pool_key().as_ref() != Some(&**key) {
+                return Err("Linux device pool key changed; refusing save".into());
+            }
+            // Preserve an externally replaced/wrong-key file rather than overwrite it.
+            match tokio::fs::read(&self.file).await {
+                Ok(data) if pool_crypto::pool_file_is_encrypted(&data) => {
+                    pool_crypto::decrypt_pool_file_with_key(&data, key)?;
+                }
+                Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(e.to_string()),
+                _ => {}
+            }
+        }
         // Clone the state under the lock, but serialize and encrypt outside it:
         // every device pick takes this lock, and a full-pool JSON dump plus
         // AES/HMAC is far more expensive than the pick itself.
@@ -703,7 +750,9 @@ impl DevicePool {
         // is also what migrates a legacy plaintext file to encrypted
         // on the first save after provisioning. With no key, keep
         // the old plaintext behavior and warn once per process.
-        let (data, plaintext_without_key) = if pool_crypto::pool_key().is_some() {
+        let (data, plaintext_without_key) = if let Some(key) = &self.strict_key {
+            (pool_crypto::encrypt_pool_file_with_key(&json, key)?, false)
+        } else if pool_crypto::pool_key().is_some() {
             (pool_crypto::encrypt_pool_file(&json)?, false)
         } else {
             static WARNED: std::sync::Once = std::sync::Once::new();
