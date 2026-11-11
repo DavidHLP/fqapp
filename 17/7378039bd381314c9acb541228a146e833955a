@@ -1,0 +1,19 @@
+rust/tests/loopback_guard.rs
+  s_e21805aa7ab3c5::t_d6fb0a5ae85b47 484-485,499-512,525,527
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "177378039bd381314c9acb541228a146e833955a",
+  "prompts": {},
+  "sessions": {
+    "s_e21805aa7ab3c5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1caf3-c75c-7512-a1a4-db59fb733463",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
