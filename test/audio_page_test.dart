@@ -1217,11 +1217,15 @@ Future<void> _mount(
   Size size = const Size(430, 932),
   double textScale = 1,
 }) async {
+  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = size;
   await tester.binding.setSurfaceSize(size);
   tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
   addTearDown(() async {
     await _unmount(tester);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
     await tester.binding.setSurfaceSize(null);
   });
   await tester.pumpWidget(session.app(theme: theme, textScale: textScale));
