@@ -1,0 +1,27 @@
+lib/pages/audio_page.dart
+  s_110384a1f3accf::t_929f6a0a4467f8 903-905,948,950
+lib/services/audio_playback_controller.dart
+  s_110384a1f3accf::t_b7408345a3303a 70-74,76,81-98,654-660,1156
+packaging/arch/PKGBUILD
+  s_110384a1f3accf::t_a7373a452ee843 4
+test/audio_page_test.dart
+  s_110384a1f3accf::t_069d205477ee47 64-127
+test/support/controlled_player.dart
+  s_110384a1f3accf::t_92b9a1ca86cc87 13-14,122-125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8a918c07b4b8601dcb2b1137fe50730086fd153d",
+  "prompts": {},
+  "sessions": {
+    "s_110384a1f3accf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c8ab-453c-7b31-9d2f-4c29adcafb05",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
