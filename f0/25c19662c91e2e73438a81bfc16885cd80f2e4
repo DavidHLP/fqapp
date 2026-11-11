@@ -1,0 +1,82 @@
+linux/runner/my_application.h
+  s_f98159569379af::t_64341b01f5fc71 1-21
+linux/flutter/CMakeLists.txt
+  s_f98159569379af::t_64341b01f5fc71 1-88
+lib/services/linux_platform.dart
+  s_f98159569379af::t_0a73548a0bf6e2 1-51
+lib/services/rust_bootstrap_io.dart
+  s_f98159569379af::t_64341b01f5fc71 22-25,27-28
+  s_f98159569379af::t_a9a51f1b3b98e2 13,26
+lib/main.dart
+  s_f98159569379af::t_44e547e9250b89 18,89,109-110,115,130-136
+lib/services/secure_key_provider.dart
+  s_f98159569379af::t_64341b01f5fc71 119-124,137-139,141-144,148
+  s_f98159569379af::t_838c36e0ffee7a 88-89,145-147
+lib/services/desktop_platform.dart
+  s_f98159569379af::t_a1eb3aab31cd20 271,533,544-546,552,557-583
+linux/runner/CMakeLists.txt
+  s_f98159569379af::t_64341b01f5fc71 1-26
+linux/CMakeLists.txt
+  s_f98159569379af::t_64341b01f5fc71 1-148
+linux/.gitignore
+  s_f98159569379af::t_64341b01f5fc71 1
+test/desktop_platform_test.dart
+  s_73a14774e35879::t_5e60fcb81af04d 2,54,61-64
+  s_f98159569379af::t_5ac58326988c60 1,8,19-53,55-60,65-102
+linux/runner/main.cc
+  s_f98159569379af::t_64341b01f5fc71 1-6
+test/encrypted_hive_test.dart
+  s_f98159569379af::t_531fc8a9c797f7 2,30-69
+linux/runner/my_application.cc
+  s_f98159569379af::t_64341b01f5fc71 1-165
+lib/services/backend_transport.dart
+  s_f98159569379af::t_64341b01f5fc71 342-345,350
+rust/src/api/mod.rs
+  s_f98159569379af::t_5b357d47165a83 809-810
+  s_f98159569379af::t_8183106084d455 186
+linux/flutter/generated_plugins.cmake
+  s_f98159569379af::t_64341b01f5fc71 1-30
+test/secure_key_provider_test.dart
+  s_f98159569379af::t_4221f77015c3a4 2,12-20
+linux/flutter/generated_plugin_registrant.cc
+  s_f98159569379af::t_64341b01f5fc71 1-35
+linux/flutter/generated_plugin_registrant.h
+  s_f98159569379af::t_64341b01f5fc71 1-15
+DEVELOPMENT.md
+  s_f98159569379af::t_a6ab88b6a6f659 1146-1185
+lib/services/encrypted_hive.dart
+  s_f98159569379af::t_64341b01f5fc71 2,115,144,146-147,210,229,231
+  s_f98159569379af::t_2109aabc6657b5 145,230,232
+rust/src/device/pool_crypto.rs
+  s_f98159569379af::t_645cd96855b05a 135-145,166-171,182-183
+rust/src/device/mod.rs
+  s_f98159569379af::t_faff4025b8f0f7 194,212-223,265-273,276-282,284-302,390,780-792,816-818
+rust/src/device/persistence_tests.rs
+  s_f98159569379af::t_4249ca8b6a48c6 505-510,530-531,541-545
+  s_f98159569379af::t_9c14264b5f23f9 529,535
+  s_f98159569379af::t_a6ab88b6a6f659 511-528,532-534,536-540
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f025c19662c91e2e73438a81bfc16885cd80f2e4",
+  "prompts": {},
+  "sessions": {
+    "s_73a14774e35879": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c43b-e348-7d01-b834-096a8f29cf29",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    },
+    "s_f98159569379af": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c92b-3258-71e0-b84e-a860bac8a466",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
