@@ -1,0 +1,21 @@
+scripts/build_linux_package.sh
+  s_e21805aa7ab3c5::t_fa0f9370b1cf04 9-12
+test/linux_packaging_test.py
+  s_e21805aa7ab3c5::t_78fb712ef13cca 80-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ff8202e011d53f18f1f0ae58a2438ea6b748763b",
+  "prompts": {},
+  "sessions": {
+    "s_e21805aa7ab3c5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1caf3-c75c-7512-a1a4-db59fb733463",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
