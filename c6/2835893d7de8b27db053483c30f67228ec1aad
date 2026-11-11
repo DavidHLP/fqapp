@@ -1,0 +1,23 @@
+.github/workflows/linux.yml
+  s_52b64f2a5c6395::t_dab17aead57019 62,82
+scripts/build_linux_package.sh
+  s_52b64f2a5c6395::t_aa764ce2734ef4 77
+test/linux_packaging_test.py
+  s_52b64f2a5c6395::t_94f5bf24d09ce1 26-27,55-56,66-79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c62835893d7de8b27db053483c30f67228ec1aad",
+  "prompts": {},
+  "sessions": {
+    "s_52b64f2a5c6395": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cb47-966c-75a2-ab31-f3e667eeaa6e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
