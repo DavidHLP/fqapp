@@ -1,0 +1,23 @@
+packaging/arch/build_release.sh
+  s_52b64f2a5c6395::t_da51f97d31c2e2 6-10
+packaging/arch/check_source.py
+  s_52b64f2a5c6395::t_e310482963d0b0 10
+test/linux_packaging_test.py
+  s_52b64f2a5c6395::t_c5d71face975e9 22,92-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e159e11d08287163abdfa9f71607878d0cdb3c66",
+  "prompts": {},
+  "sessions": {
+    "s_52b64f2a5c6395": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cb47-966c-75a2-ab31-f3e667eeaa6e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
