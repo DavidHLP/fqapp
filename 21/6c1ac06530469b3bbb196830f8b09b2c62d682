@@ -1,0 +1,19 @@
+native/linux/tts.cc
+  s_e21805aa7ab3c5::t_abc006bc7c794b 172
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "216c1ac06530469b3bbb196830f8b09b2c62d682",
+  "prompts": {},
+  "sessions": {
+    "s_e21805aa7ab3c5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1caf3-c75c-7512-a1a4-db59fb733463",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
