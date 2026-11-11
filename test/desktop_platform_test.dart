@@ -111,6 +111,47 @@ void main() {
   });
 
   testWidgets(
+    'chapter sidebar locates distant current chapter and restores after search',
+    (tester) async {
+      final chapters = [
+        for (var i = 0; i < 2000; i++)
+          Chapter(itemId: '$i', title: '章节 $i', volumeName: '第二卷'),
+      ];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DesktopChapterSidebar(
+              chapters: chapters,
+              currentIndex: 1700,
+              onSelected: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('章节 1700'), findsOneWidget);
+      expect(find.text('当前'), findsOneWidget);
+      expect(
+        tester
+            .widget<ListTile>(
+              find.ancestor(
+                of: find.text('章节 1700'),
+                matching: find.byType(ListTile),
+              ),
+            )
+            .selected,
+        isTrue,
+      );
+      await tester.enterText(find.byType(TextField), '章节 1');
+      await tester.pumpAndSettle();
+      expect(find.text('章节 1700'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '');
+      await tester.pumpAndSettle();
+      expect(find.text('章节 1700'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'desktop directory filters and selects original chapter indices',
     (tester) async {
       int? selected;

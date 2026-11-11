@@ -23,7 +23,7 @@ import 'audio_tone_chip.dart';
 /// 22dp 距右 16dp。两者都保留 48dp 宽的点击区，图标在区内居中，所以整块
 /// 点击区要再往内收 (48 − 图标)/2，图标的实际外缘才落在规格位置上。
 class AudioTopBar extends StatelessWidget {
-  final VoidCallback onCollapse;
+  final VoidCallback? onCollapse;
   final VoidCallback onMore;
   final Widget? center;
   final AudioPageTheme? theme;
@@ -77,18 +77,19 @@ class AudioTopBar extends StatelessWidget {
               ),
             ),
           ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _HeaderIconButton(
-              tooltip: '收起',
-              icon: LucideIcons.chevron_down,
-              iconSize: 24,
-              height: height,
-              color: colors.ink,
-              onPressed: onCollapse,
-              edgeInset: 20,
+          if (onCollapse != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _HeaderIconButton(
+                tooltip: '收起',
+                icon: LucideIcons.chevron_down,
+                iconSize: 24,
+                height: height,
+                color: colors.ink,
+                onPressed: onCollapse!,
+                edgeInset: 20,
+              ),
             ),
-          ),
           Align(
             alignment: Alignment.centerRight,
             child: _HeaderIconButton(
@@ -180,6 +181,7 @@ class AudioBookCard extends StatefulWidget {
   /// Official 真人讲书 proportions: 72% of the screen, 12dip corners and a
   /// three-line gradient footer.
   final bool realAudio;
+  final bool desktop;
 
   /// Third footer line, e.g. `真人讲书・第 3 集`. Tapping it flips the card.
   final String? modeLabel;
@@ -195,6 +197,7 @@ class AudioBookCard extends StatefulWidget {
     this.onSwitch,
     this.onOpenBook,
     this.realAudio = false,
+    this.desktop = false,
     this.modeLabel,
     this.intro,
   });
@@ -216,8 +219,31 @@ class _AudioBookCardState extends State<AudioBookCard> {
       // still shrink it instead of overflowing.
       return Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 293),
-          child: _cover(palette),
+          constraints: BoxConstraints(maxWidth: widget.desktop ? 360 : 293),
+          child: widget.desktop
+              ? Column(
+                  children: [
+                    _cover(palette),
+                    const SizedBox(height: 16),
+                    Text(
+                      widget.bookTitle,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AudioPageThemeScope.of(context).ink,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      widget.chapterTitle,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AudioPageThemeScope.of(context).ink,
+                      ),
+                    ),
+                  ],
+                )
+              : _cover(palette),
         ),
       );
     }
@@ -292,7 +318,7 @@ class _AudioBookCardState extends State<AudioBookCard> {
               ),
               if (real)
                 Positioned(left: 0, right: 0, bottom: 0, child: _realFooter())
-              else ...[
+              else if (!widget.desktop) ...[
                 Positioned(
                   left: 14,
                   right: 14,
@@ -989,6 +1015,7 @@ class _AudioSubtitleListState extends State<AudioSubtitleList> {
 /// 官方默认不在这行放时间文字——带左右时间的那套（`fud`）在 7.0.9.32 里是
 /// `visibility="gone"` 的备用变体，时长信息由页头与拖动标签承担。
 class AudioProgressRow extends StatelessWidget {
+  final bool showTime;
   final Duration position;
   final Duration duration;
   final double? preview;
@@ -1002,6 +1029,7 @@ class AudioProgressRow extends StatelessWidget {
     super.key,
     required this.position,
     required this.duration,
+    this.showTime = false,
     this.preview,
     this.enabled = true,
     this.onChanged,
@@ -1021,37 +1049,57 @@ class AudioProgressRow extends StatelessWidget {
       maximum > 0 ? maximum : 1.0,
     );
     final active = enabled && maximum > 0;
-    return Row(
+    return Column(
       children: [
-        _SkipIcon(
-          icon: LucideIcons.rotate_ccw,
-          tooltip: '后退15秒',
-          onTap: onBack15,
-        ),
-        Expanded(
-          child: SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 2,
-              activeTrackColor: palette.accentText,
-              inactiveTrackColor: palette.line,
-              thumbColor: palette.accentText,
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4.5),
-            ),
-            child: Slider(
-              key: const ValueKey('audio-seek'),
-              value: value,
-              max: maximum > 0 ? maximum : 1,
-              label: time(Duration(milliseconds: value.round())),
-              onChanged: active ? onChanged : null,
-              onChangeEnd: active ? onChangeEnd : null,
-            ),
+        if (showTime)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(time(Duration(milliseconds: value.round()))),
+              Text(time(duration)),
+            ],
           ),
-        ),
-        _SkipIcon(
-          icon: LucideIcons.rotate_cw,
-          tooltip: '前进15秒',
-          onTap: onForward15,
+        Row(
+          children: [
+            _SkipIcon(
+              icon: LucideIcons.rotate_ccw,
+              tooltip: '后退15秒',
+              showLabel: showTime,
+              onTap: onBack15,
+            ),
+            Expanded(
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 2,
+                  activeTrackColor: palette.accentText,
+                  inactiveTrackColor: palette.line,
+                  thumbColor: palette.accentText,
+                  overlayShape: const RoundSliderOverlayShape(
+                    overlayRadius: 12,
+                  ),
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 4.5,
+                  ),
+                ),
+                child: Slider(
+                  key: const ValueKey('audio-seek'),
+                  value: value,
+                  max: maximum > 0 ? maximum : 1,
+                  label: time(Duration(milliseconds: value.round())),
+                  semanticFormatterCallback: (v) =>
+                      '播放进度 ${time(Duration(milliseconds: v.round()))}，共 ${time(duration)}',
+                  onChanged: active ? onChanged : null,
+                  onChangeEnd: active ? onChangeEnd : null,
+                ),
+              ),
+            ),
+            _SkipIcon(
+              icon: LucideIcons.rotate_cw,
+              tooltip: '前进15秒',
+              showLabel: showTime,
+              onTap: onForward15,
+            ),
+          ],
         ),
       ],
     );
@@ -1059,11 +1107,13 @@ class AudioProgressRow extends StatelessWidget {
 }
 
 class _SkipIcon extends StatelessWidget {
+  final bool showLabel;
   final IconData icon;
   final String tooltip;
   final VoidCallback? onTap;
 
   const _SkipIcon({
+    this.showLabel = false,
     required this.icon,
     required this.tooltip,
     required this.onTap,
@@ -1081,7 +1131,12 @@ class _SkipIcon extends StatelessWidget {
         foregroundColor: palette.muted,
         disabledForegroundColor: palette.line,
       ),
-      icon: Icon(icon),
+      icon: showLabel
+          ? Text(
+              tooltip.startsWith('后') ? '−15 s' : '+15 s',
+              style: const TextStyle(fontSize: 12),
+            )
+          : Icon(icon),
     );
   }
 }

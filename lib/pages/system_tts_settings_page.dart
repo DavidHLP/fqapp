@@ -94,6 +94,9 @@ class _SystemTtsSettingsPageState extends State<SystemTtsSettingsPage>
     if (_saving) return;
     setState(() => _saving = true);
     try {
+      if (isLinuxDesktop && prefs.volume != null) {
+        await SystemTts.setVolume(prefs.safeVolume);
+      }
       await prefs.save();
       if (mounted) setState(() => _prefs = prefs);
     } catch (_) {

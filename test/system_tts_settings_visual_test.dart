@@ -47,16 +47,17 @@ void main() {
     tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.linux;
-    await pumpPage(
-      tester,
-      (call) async => call.method == 'engines'
+    final calls = <MethodCall>[];
+    await pumpPage(tester, (call) async {
+      calls.add(call);
+      return call.method == 'engines'
           ? {
               'engines': [
                 {'package': 'synthetic', 'label': 'Synthetic'},
               ],
             }
-          : null,
-    );
+          : null;
+    });
     expect(find.text('朗读音量'), findsOneWidget);
     final slider = tester
         .widgetList<AppGlassSlider>(find.byType(AppGlassSlider))
@@ -69,6 +70,9 @@ void main() {
       (await SharedPreferences.getInstance()).getDouble('system_tts_volume'),
       .25,
     );
+    expect(calls.where((c) => c.method == 'setVolume').single.arguments, {
+      'volume': .25,
+    });
     debugDefaultTargetPlatformOverride = null;
   });
 

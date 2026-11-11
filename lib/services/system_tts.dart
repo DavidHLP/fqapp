@@ -60,6 +60,8 @@ class SystemTts {
   /// follow the previous one without a gap.
   static Future<void> speak(String text, String id, {bool queue = false}) =>
       _call<void>('speak', {'text': text, 'id': id, 'queue': queue});
+  static Future<void> setVolume(double value) =>
+      _call<void>('setVolume', {'volume': value});
   static Future<void> stop() => _call<void>('stop');
 
   /// Stops the engine but **keeps** the audio focus: a pause must not abandon

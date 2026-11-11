@@ -64,6 +64,25 @@ class _AudioPlaybackController extends ChangeNotifier
   String _excerpt = '';
   int _excerptGeneration = 0;
   double _rate = 1;
+  double _volume = 1;
+  double _unmutedVolume = 1;
+
+  Future<void> _setVolume(double value) async {
+    if (!value.isFinite) return;
+    final volume = value.clamp(0.0, 1.0);
+    await _player?.setVolume(volume);
+    final prefs = await SystemTtsPreferences.load();
+    await SystemTtsPreferences(
+      engine: prefs.engine,
+      rate: prefs.rate,
+      volume: volume,
+    ).save();
+    _update(() {
+      _volume = volume;
+      if (volume > 0) _unmutedVolume = volume;
+    });
+  }
+
   // Position ticks (~5Hz) rebuild progress/read-along listeners, not the page.
   final ValueNotifier<Duration> _position = ValueNotifier(Duration.zero);
   final ValueNotifier<double?> _seekPreview = ValueNotifier(null);
@@ -616,6 +635,11 @@ class _AudioPlaybackController extends ChangeNotifier
       if (player.lastError case final Object error) throw error;
       _subscribe(player, generation);
       await player.setRate(_rate);
+      if (isDesktopPlatform) {
+        _volume = (await SystemTtsPreferences.load()).safeVolume;
+        if (_volume > 0) _unmutedVolume = _volume;
+        await player.setVolume(_volume);
+      }
       if (!_current(generation, player)) return;
       final duration = player.duration > Duration.zero
           ? player.duration

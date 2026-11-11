@@ -21,12 +21,45 @@ class DesktopChapterSidebar extends StatefulWidget {
 
 class _DesktopChapterSidebarState extends State<DesktopChapterSidebar> {
   String _query = '';
+  final _scroll = ScrollController();
+  bool _locate = true;
+
+  @override
+  void didUpdateWidget(covariant DesktopChapterSidebar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentIndex != widget.currentIndex ||
+        oldWidget.chapters != widget.chapters) {
+      _locate = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final indices = [
       for (var i = 0; i < widget.chapters.length; i++)
         if (_query.isEmpty || widget.chapters[i].title.contains(_query)) i,
     ];
+    final extent =
+        80.0 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.5);
+    if (_locate) {
+      _locate = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scroll.hasClients) return;
+        final index = indices.indexOf(widget.currentIndex);
+        _scroll.jumpTo(
+          (index < 0 ? 0.0 : index * extent).clamp(
+            0.0,
+            _scroll.position.maxScrollExtent,
+          ),
+        );
+      });
+    }
     return SizedBox(
       width: widget.width,
       child: Material(
@@ -41,7 +74,10 @@ class _DesktopChapterSidebarState extends State<DesktopChapterSidebar> {
                   prefixIcon: Icon(Icons.search),
                   isDense: true,
                 ),
-                onChanged: (value) => setState(() => _query = value.trim()),
+                onChanged: (value) => setState(() {
+                  _query = value.trim();
+                  _locate = true;
+                }),
               ),
             ),
             Padding(
@@ -50,11 +86,24 @@ class _DesktopChapterSidebarState extends State<DesktopChapterSidebar> {
             ),
             Expanded(
               child: ListView.builder(
+                key: ValueKey(_query),
+                controller: _scroll,
+                itemExtent: extent,
                 itemCount: indices.length,
                 itemBuilder: (context, index) {
                   final i = indices[index];
                   return ListTile(
                     dense: true,
+                    trailing: i == widget.currentIndex
+                        ? const Text('当前')
+                        : null,
+                    subtitle: widget.chapters[i].volumeName.isEmpty
+                        ? null
+                        : Text(
+                            widget.chapters[i].volumeName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                     selected: i == widget.currentIndex,
                     selectedTileColor: Theme.of(
                       context,

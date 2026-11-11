@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:fqapp/services/audio_page_theme.dart';
+import 'package:fqapp/widgets/audio/audio_sections.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fqapp/models/audio_extra.dart';
 import 'package:fqapp/models/audio_time_track.dart';
@@ -58,6 +60,116 @@ void main() {
       expect(player.isPlaying, true);
     },
   );
+
+  for (final width in [640.0, 1440.0]) {
+    testWidgets('desktop theme, status, seek and actual volume at $width', (
+      tester,
+    ) async {
+      final session = _Session();
+      await _mount(
+        tester,
+        session,
+        size: Size(width, 1000),
+        theme: AppTheme.createTheme(Brightness.dark),
+        textScale: width == 640 ? 2 : 1,
+      );
+      expect(find.text('本章已播完'), findsNothing);
+      expect(find.byTooltip('收起'), findsNothing);
+      final element = tester.element(find.byType(AudioBookCard));
+      expect(
+        AudioPageThemeScope.of(element).ink,
+        AudioPageTheme.fallbackDark.ink,
+      );
+      final player = session.players.single;
+      player.emitPosition(const Duration(seconds: 25));
+      await tester.pump();
+      expect(find.text('00:25'), findsOneWidget);
+      final slider = tester.widget<Slider>(
+        find.byKey(const ValueKey('audio-seek')),
+      );
+      expect(slider.semanticFormatterCallback!(37500), contains('00:37'));
+      slider.onChanged!(37500);
+      await tester.pump();
+      expect(find.text('00:37'), findsOneWidget);
+      slider.onChangeEnd!(37500);
+      await _flush(tester);
+      expect(player.position.inMilliseconds, 37500);
+      tester.widget<Slider>(find.byKey(const Key('audio-volume'))).onChanged!(
+        .25,
+      );
+      await _flush(tester);
+      expect(player.calls, contains('volume:0.25'));
+      await tester.tap(find.byTooltip('静音'));
+      await _flush(tester);
+      expect(player.calls, contains('volume:0.0'));
+      await tester.tap(find.byTooltip('取消静音'));
+      await _flush(tester);
+      expect(player.calls.last, 'volume:0.25');
+      expect(tester.takeException(), isNull);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+  }
+
+  testWidgets('desktop loading buffering error and completion stay distinct', (
+    tester,
+  ) async {
+    final gate = Completer<AudioSource>();
+    final session = _Session(
+      loader: (id, {toneId}) => gate.future,
+      chapters: [Chapter(itemId: '1', title: '末章', volumeName: '')],
+    );
+    await _mount(tester, session, size: const Size(1440, 1000));
+    expect(find.text('正在加载音频…'), findsOneWidget);
+    expect(find.text('本章已播完'), findsNothing);
+    gate.complete(_source('1', null));
+    await _flush(tester);
+    session.players.single.emitBuffering(true);
+    await _flush(tester);
+    expect(find.text('缓冲中…'), findsOneWidget);
+    session.players.single.emitBuffering(false);
+    session.players.single.emitCompleted();
+    await _flush(tester);
+    expect(find.text('已播完最新章节，去听听其它内容吧'), findsOneWidget);
+    expect(find.byTooltip('播放'), findsOneWidget);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
+  for (final mode in ['light', 'oled', 'eink']) {
+    testWidgets('desktop theme scope supports $mode', (tester) async {
+      themeModeNotifier.value = mode == 'light'
+          ? ThemeMode.light
+          : ThemeMode.dark;
+      oledModeNotifier.value = mode == 'oled';
+      einkModeNotifier.value = mode == 'eink';
+      addTearDown(() {
+        themeModeNotifier.value = ThemeMode.system;
+        oledModeNotifier.value = false;
+        einkModeNotifier.value = false;
+      });
+      final session = _Session();
+      await _mount(
+        tester,
+        session,
+        size: const Size(1440, 1000),
+        theme: AppTheme.createTheme(
+          mode == 'light' ? Brightness.light : Brightness.dark,
+        ),
+      );
+      final element = tester.element(find.byType(AudioBookCard));
+      final theme = AudioPageThemeScope.of(element);
+      expect(
+        theme.ink,
+        mode == 'eink'
+            ? Colors.black
+            : mode == 'light'
+            ? AudioPageTheme.fallback.ink
+            : AudioPageTheme.fallbackDark.ink,
+      );
+      if (mode == 'oled') expect(theme.canvas, Colors.black);
+      session.players.single.errors.add(StateError('synthetic failure'));
+      await _flush(tester);
+      expect(find.byKey(const ValueKey('audio-retry')), findsOneWidget);
+      expect(find.text('本章已播完'), findsNothing);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+  }
 
   for (final scenario
       in <({String name, Map<String, dynamic> saved, int position})>[
@@ -1103,6 +1215,7 @@ Future<void> _mount(
   _Session session, {
   ThemeData? theme,
   Size size = const Size(430, 932),
+  double textScale = 1,
 }) async {
   await tester.binding.setSurfaceSize(size);
   tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
@@ -1111,7 +1224,7 @@ Future<void> _mount(
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.binding.setSurfaceSize(null);
   });
-  await tester.pumpWidget(session.app(theme: theme));
+  await tester.pumpWidget(session.app(theme: theme, textScale: textScale));
   await _flush(tester);
 }
 
@@ -1179,7 +1292,13 @@ class _Session {
                Chapter(itemId: '$index', title: '第$index章', volumeName: '第一卷'),
            ];
 
-  Widget app({ThemeData? theme}) => MaterialApp(
+  Widget app({ThemeData? theme, double textScale = 1}) => MaterialApp(
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(
+        context,
+      ).copyWith(textScaler: TextScaler.linear(textScale)),
+      child: child!,
+    ),
     theme: theme,
     home: AudioPage(
       bookId: 'book',

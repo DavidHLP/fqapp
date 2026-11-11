@@ -1,7 +1,7 @@
 # Local source archive from the exact delivery commit; see LINUX.md.
 pkgname=fqapp
 pkgver=1.0.201
-pkgrel=2
+pkgrel=3
 pkgdesc='fqapp Linux desktop client (draft validation build)'
 arch=('x86_64')
 url='https://github.com/DavidHLP/fqapp'

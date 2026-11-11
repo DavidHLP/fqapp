@@ -697,7 +697,16 @@ class _AudioPageState extends State<AudioPage> {
     final introSummary = detail?.abstract ?? '';
     final related = c._extras.related.isEmpty ? null : c._extras.related.first;
     // Windows 桌面端用独立版式；它只需要 tones，上面这些局部变量先算好并不吃亏。
-    if (isDesktopPlatform) return _desktopAudio(palette, chapter, tones);
+    if (isDesktopPlatform) {
+      return AudioPageThemeScope(
+        theme: palette.eink
+            ? AudioPageTheme.eink
+            : _coverTheme(palette.dark, palette),
+        oled: palette.oled && palette.dark,
+        eink: palette.eink,
+        child: _desktopAudio(palette, chapter, tones),
+      );
+    }
 
     // 官方整页底色/字色都取自封面（见 audio_page_theme.dart）；墨水屏固定
     // 纯黑白，不使用封面取色。
@@ -738,10 +747,7 @@ class _AudioPageState extends State<AudioPage> {
     backgroundColor: palette.canvas,
     body: Column(
       children: [
-        AudioTopBar(
-          onCollapse: () => Navigator.maybePop(context),
-          onMore: _showMore,
-        ),
+        AudioTopBar(onCollapse: null, onMore: _showMore),
         Expanded(
           child: Row(
             children: [
@@ -750,10 +756,11 @@ class _AudioPageState extends State<AudioPage> {
                   padding: const EdgeInsets.all(24),
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 600),
+                      constraints: const BoxConstraints(maxWidth: 860),
                       child: Column(
                         children: [
                           AudioBookCard(
+                            desktop: true,
                             cover: c._cover,
                             bookTitle: c._title,
                             chapterTitle: chapter.title,
@@ -761,7 +768,12 @@ class _AudioPageState extends State<AudioPage> {
                             onOpenBook: _showCatalog,
                           ),
                           const SizedBox(height: 20),
-                          _statusLine(palette),
+                          if (c._switchingVersion ||
+                              c._error != null ||
+                              c._loading ||
+                              (c._player?.buffering ?? false) ||
+                              c._completed)
+                            _statusLine(palette),
                           if (c._excerpt.isNotEmpty)
                             AudioExcerpt(text: c._excerpt, onTap: _showExcerpt),
                           const SizedBox(height: 12),
@@ -789,60 +801,61 @@ class _AudioPageState extends State<AudioPage> {
                   ),
                 ),
               ),
-              SizedBox(
-                width: MediaQuery.sizeOf(context).width >= 1200 ? 360 : 280,
-                child: DefaultTabController(
-                  length: 2,
-                  child: Column(
-                    children: [
-                      const TabBar(
-                        tabs: [
-                          Tab(text: '章节目录'),
-                          Tab(text: '同步字幕'),
-                        ],
-                      ),
-                      Expanded(
-                        child: TabBarView(
-                          children: [
-                            DesktopChapterSidebar(
-                              chapters: c._chapters,
-                              currentIndex: c._index,
-                              onSelected: (index) =>
-                                  unawaited(c._openChapter(index)),
-                            ),
-                            ValueListenableBuilder<Duration>(
-                              valueListenable: c._position,
-                              builder: (context, position, _) {
-                                final track = c._subtitles;
-                                if (track.isEmpty) {
-                                  // 官方两种空态都走 `setStatusText`，文案统一。
-                                  return const Center(
-                                    child: Text(
-                                      '本章暂无同步字幕',
-                                      key: Key('audio-subtitle-page-empty'),
-                                    ),
-                                  );
-                                }
-                                // 高亮与自动滚动都在 `AudioSubtitleList`
-                                // 里：跟着朗读进度滚到当前句并标出它。
-                                return AudioSubtitleList(
-                                  track: track,
-                                  active: track.indexAt(position),
-                                  onSeek: c._ready
-                                      ? (startMs) => c._seekTo(
-                                          Duration(milliseconds: startMs),
-                                        )
-                                      : null,
-                                );
-                              },
-                            ),
+              if (MediaQuery.sizeOf(context).width >= 1000)
+                SizedBox(
+                  width: MediaQuery.sizeOf(context).width >= 1400 ? 360 : 280,
+                  child: DefaultTabController(
+                    length: 2,
+                    child: Column(
+                      children: [
+                        const TabBar(
+                          tabs: [
+                            Tab(text: '章节目录'),
+                            Tab(text: '同步字幕'),
                           ],
                         ),
-                      ),
-                    ],
+                        Expanded(
+                          child: TabBarView(
+                            children: [
+                              DesktopChapterSidebar(
+                                chapters: c._chapters,
+                                currentIndex: c._index,
+                                onSelected: (index) =>
+                                    unawaited(c._openChapter(index)),
+                              ),
+                              ValueListenableBuilder<Duration>(
+                                valueListenable: c._position,
+                                builder: (context, position, _) {
+                                  final track = c._subtitles;
+                                  if (track.isEmpty) {
+                                    // 官方两种空态都走 `setStatusText`，文案统一。
+                                    return const Center(
+                                      child: Text(
+                                        '本章暂无同步字幕',
+                                        key: Key('audio-subtitle-page-empty'),
+                                      ),
+                                    );
+                                  }
+                                  // 高亮与自动滚动都在 `AudioSubtitleList`
+                                  // 里：跟着朗读进度滚到当前句并标出它。
+                                  return AudioSubtitleList(
+                                    track: track,
+                                    active: track.indexAt(position),
+                                    onSeek: c._ready
+                                        ? (startMs) => c._seekTo(
+                                            Duration(milliseconds: startMs),
+                                          )
+                                        : null,
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -852,27 +865,74 @@ class _AudioPageState extends State<AudioPage> {
             padding: const EdgeInsets.fromLTRB(32, 8, 32, 12),
             child: Column(
               children: [
+                Text(
+                  c._title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  chapter.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    TextButton(
+                      onPressed: _showRates,
+                      child: Text('${_rateLabel(c._rate)}×'),
+                    ),
+                    IconButton(
+                      tooltip: c._volume == 0 ? '取消静音' : '静音',
+                      onPressed: () => _setDesktopVolume(
+                        c._volume == 0 ? c._unmutedVolume : 0,
+                      ),
+                      icon: Icon(
+                        c._volume == 0 ? Icons.volume_off : Icons.volume_up,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 160,
+                      child: Slider(
+                        key: const Key('audio-volume'),
+                        value: c._volume,
+                        semanticFormatterCallback: (v) =>
+                            '音量 ${(v * 100).round()}%',
+                        onChanged: _setDesktopVolume,
+                      ),
+                    ),
+                  ],
+                ),
                 ValueListenableBuilder<Duration>(
                   valueListenable: c._position,
-                  builder: (context, position, _) => AudioProgressRow(
-                    position: position,
-                    duration: c._duration,
-                    preview: c._seekPreview.value,
-                    enabled: c._ready,
-                    onChanged: (value) => c._seekPreview.value = value,
-                    onChangeEnd: (value) =>
-                        c._seekTo(Duration(milliseconds: value.round())),
-                    onBack15: c._ready
-                        ? () => c._seekTo(
-                            c._position.value - const Duration(seconds: 15),
-                          )
-                        : null,
-                    onForward15: c._ready
-                        ? () => c._seekTo(
-                            c._position.value + const Duration(seconds: 15),
-                          )
-                        : null,
-                  ),
+                  builder: (context, position, _) =>
+                      ValueListenableBuilder<double?>(
+                        valueListenable: c._seekPreview,
+                        builder: (context, preview, _) => AudioProgressRow(
+                          showTime: true,
+                          position: position,
+                          duration: c._duration,
+                          preview: preview,
+                          enabled: c._ready,
+                          onChanged: (value) => c._seekPreview.value = value,
+                          onChangeEnd: (value) =>
+                              c._seekTo(Duration(milliseconds: value.round())),
+                          onBack15: c._ready
+                              ? () => c._seekTo(
+                                  c._position.value -
+                                      const Duration(seconds: 15),
+                                )
+                              : null,
+                          onForward15: c._ready
+                              ? () => c._seekTo(
+                                  c._position.value +
+                                      const Duration(seconds: 15),
+                                )
+                              : null,
+                        ),
+                      ),
                 ),
                 _transport(),
               ],
@@ -882,6 +942,18 @@ class _AudioPageState extends State<AudioPage> {
       ],
     ),
   );
+
+  Future<void> _setDesktopVolume(double value) async {
+    try {
+      await c._setVolume(value);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('音量设置失败，请重试')));
+      }
+    }
+  }
 
   Future<void> _showExcerpt() async {
     if (c._excerpt.isEmpty) return;
@@ -1113,7 +1185,7 @@ class _AudioPageState extends State<AudioPage> {
                       alpha: 0.5,
                     ),
                   ),
-                  icon: loading && !playing
+                  icon: loading && (!playing || isDesktopPlatform)
                       ? SizedBox(
                           width: 26,
                           height: 26,

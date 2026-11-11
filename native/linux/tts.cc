@@ -163,7 +163,7 @@ public:
       else if (method == "pause" || method == "stop") {
         cancel();
       } else if (method != "engines" && method != "initialize" &&
-                 method != "speak")
+                 method != "speak" && method != "setVolume")
         error = "未知朗读方法";
       else if (!open())
         error =
@@ -229,6 +229,13 @@ public:
           if (error.empty())
             result = fl_value_new_int(4000);
         }
+      } else if (method == "setVolume") {
+        double volume = number(field(args, "volume"), -1);
+        if (!std::isfinite(volume) || volume < 0 || volume > 1)
+          error = "音量超出范围";
+        else if (spd_set_volume(
+                     connection, static_cast<int>(std::lround(volume * 200 - 100))) < 0)
+          error = "无法设置朗读音量";
       } else if (method == "speak") {
         auto text = str(field(args, "text")), id = str(field(args, "id"));
         if (text.empty() || id.empty() || text.size() > 64 * 1024)
