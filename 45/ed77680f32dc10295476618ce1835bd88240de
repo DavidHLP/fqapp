@@ -1,0 +1,45 @@
+lib/pages/system_tts_settings_page.dart
+  s_241e0a72ca6c43::t_3b4f82244a0723 98-99
+  s_241e0a72ca6c43::t_68d3d0512cbd20 97
+native/linux/tts.cc
+  s_241e0a72ca6c43::t_3b4f82244a0723 166,232-238
+lib/widgets/desktop_chapter_sidebar.dart
+  s_241e0a72ca6c43::t_3b4f82244a0723 24-30,32-41,48-62,77-80,89-91,97-106
+  s_241e0a72ca6c43::t_ad720d6ae555dc 31
+lib/widgets/audio/audio_sections.dart
+  s_241e0a72ca6c43::t_17937d79a34988 1064-1068,1097,1099,1110,1116,1134-1139
+  s_241e0a72ca6c43::t_784df76ae1ecbe 26,80-91,184,200,222-246,321,1018,1032,1052,1054-1063,1070-1094,1096,1098,1100-1102
+lib/services/audio_playback_controller.dart
+  s_241e0a72ca6c43::t_784df76ae1ecbe 67-81
+  s_241e0a72ca6c43::t_565814e2386b37 82-85,638-642
+packaging/arch/PKGBUILD
+  s_241e0a72ca6c43::t_784df76ae1ecbe 4
+lib/pages/audio_page.dart
+  s_241e0a72ca6c43::t_784df76ae1ecbe 700-709,750,759,763,771-776,804-814,817-856,868-907,910-935,946-948,950-952,954-955
+  s_241e0a72ca6c43::t_17937d79a34988 949,953
+  s_241e0a72ca6c43::t_2f7af56d33e55a 956-957,1188
+lib/services/system_tts.dart
+  s_241e0a72ca6c43::t_3b4f82244a0723 63-64
+test/audio_page_test.dart
+  s_241e0a72ca6c43::t_df592f8513d9bd 4-5,64-173,1218,1227,1295-1301
+test/desktop_platform_test.dart
+  s_241e0a72ca6c43::t_fdd74fcfa0d87d 113-153
+test/system_tts_settings_visual_test.dart
+  s_241e0a72ca6c43::t_adf8b5970da7f3 50-53,59-60,73-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "45ed77680f32dc10295476618ce1835bd88240de",
+  "prompts": {},
+  "sessions": {
+    "s_241e0a72ca6c43": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c898-e31d-78b0-afbb-d69dc4065832",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
