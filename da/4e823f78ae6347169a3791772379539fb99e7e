@@ -1,0 +1,19 @@
+test/audio_page_test.dart
+  s_241e0a72ca6c43::t_51a351a420ca40 1220-1221,1227-1228
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "da4e823f78ae6347169a3791772379539fb99e7e",
+  "prompts": {},
+  "sessions": {
+    "s_241e0a72ca6c43": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c898-e31d-78b0-afbb-d69dc4065832",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
