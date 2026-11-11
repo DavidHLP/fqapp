@@ -1,0 +1,19 @@
+lib/services/audio_playback_controller.dart
+  s_110384a1f3accf::t_eeacce8891c185 662
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d9589c225ba3c8a9da93ff68372d531506f1629f",
+  "prompts": {},
+  "sessions": {
+    "s_110384a1f3accf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c8ab-453c-7b31-9d2f-4c29adcafb05",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
