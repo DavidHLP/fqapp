@@ -10,6 +10,8 @@ class ControlledNativePlayer extends FakeNativePlayer {
   Completer<void>? seekGate;
   Completer<void>? rateGate;
   Completer<void>? playGate;
+  Completer<void>? volumeGate;
+  double actualVolume = 1;
   bool _created = false;
   bool _completed = false;
   Future<void>? _release;
@@ -117,6 +119,10 @@ class ControlledNativePlayer extends FakeNativePlayer {
   Future<void> setVolume(double volume) async {
     if (disposed) return;
     calls.add('volume:$volume');
+    final gate = volumeGate;
+    volumeGate = null;
+    await gate?.future;
+    actualVolume = volume;
   }
 
   void emitPosition(Duration position) {

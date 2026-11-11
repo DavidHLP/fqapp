@@ -900,7 +900,9 @@ class _AudioPageState extends State<AudioPage> {
                         value: c._volume,
                         semanticFormatterCallback: (v) =>
                             '音量 ${(v * 100).round()}%',
-                        onChanged: _setDesktopVolume,
+                        onChanged: (value) =>
+                            _setDesktopVolume(value, persist: false),
+                        onChangeEnd: _setDesktopVolume,
                       ),
                     ),
                   ],
@@ -943,9 +945,9 @@ class _AudioPageState extends State<AudioPage> {
     ),
   );
 
-  Future<void> _setDesktopVolume(double value) async {
+  Future<void> _setDesktopVolume(double value, {bool persist = true}) async {
     try {
-      await c._setVolume(value);
+      await c._setVolume(value, persist: persist);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(

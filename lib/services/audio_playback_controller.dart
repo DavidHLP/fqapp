@@ -67,20 +67,35 @@ class _AudioPlaybackController extends ChangeNotifier
   double _volume = 1;
   double _unmutedVolume = 1;
 
-  Future<void> _setVolume(double value) async {
-    if (!value.isFinite) return;
+  Future<void> _volumeTail = Future<void>.value();
+  bool _volumeInitialized = false;
+
+  Future<void> _setVolume(double value, {bool persist = true}) {
+    if (_closed || !value.isFinite) return Future<void>.value();
     final volume = value.clamp(0.0, 1.0);
-    await _player?.setVolume(volume);
-    final prefs = await SystemTtsPreferences.load();
-    await SystemTtsPreferences(
-      engine: prefs.engine,
-      rate: prefs.rate,
-      volume: volume,
-    ).save();
+    _volumeInitialized = true;
     _update(() {
       _volume = volume;
       if (volume > 0) _unmutedVolume = volume;
     });
+    final player = _player;
+    final operation = _volumeTail.then((_) async {
+      if (player == _player && !_closed) await player?.setVolume(volume);
+      if (persist) {
+        final prefs = await SystemTtsPreferences.load();
+        await SystemTtsPreferences(
+          engine: prefs.engine,
+          rate: prefs.rate,
+          volume: volume,
+        ).save();
+      }
+    });
+    // Keep later intentions runnable; the caller still receives this error.
+    _volumeTail = operation.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return operation;
   }
 
   // Position ticks (~5Hz) rebuild progress/read-along listeners, not the page.
@@ -636,7 +651,13 @@ class _AudioPlaybackController extends ChangeNotifier
       _subscribe(player, generation);
       await player.setRate(_rate);
       if (isDesktopPlatform) {
-        _volume = (await SystemTtsPreferences.load()).safeVolume;
+        if (!_volumeInitialized) {
+          final saved = (await SystemTtsPreferences.load()).safeVolume;
+          if (!_volumeInitialized) _volume = saved;
+          _volumeInitialized = true;
+        }
+        await _volumeTail;
+        if (!_current(generation, player)) return;
         if (_volume > 0) _unmutedVolume = _volume;
         await player.setVolume(_volume);
       }
@@ -1132,6 +1153,7 @@ class _AudioPlaybackController extends ChangeNotifier
     _subscriptions.clear();
     _releases = _releases.then((_) async {
       await Future.wait(cancellations);
+      await _volumeTail;
       if (player == null) return;
       try {
         if (player.isCreated) await player.pause();

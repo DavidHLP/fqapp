@@ -61,6 +61,70 @@ void main() {
     },
   );
 
+  testWidgets('latest volume survives a delayed earlier player operation', (
+    tester,
+  ) async {
+    final session = _Session();
+    await _mount(tester, session, size: const Size(1440, 1000));
+    final player = session.players.single;
+    final gate = Completer<void>();
+    player.volumeGate = gate;
+    final slider = tester.widget<Slider>(find.byKey(const Key('audio-volume')));
+    slider.onChanged!(.2);
+    await _flush(tester);
+    slider.onChanged!(.8);
+    slider.onChangeEnd?.call(.8);
+    await _flush(tester);
+    gate.complete();
+    await _flush(tester);
+    expect(player.actualVolume, .8);
+    expect(
+      tester.widget<Slider>(find.byKey(const Key('audio-volume'))).value,
+      .8,
+    );
+    expect(
+      (await SharedPreferences.getInstance()).getDouble('system_tts_volume'),
+      .8,
+    );
+    await tester.tap(find.byTooltip('静音'));
+    await _flush(tester);
+    await tester.tap(find.byTooltip('取消静音'));
+    await _flush(tester);
+    expect(player.actualVolume, .8);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
+  testWidgets('volume failure does not block mute recovery or next chapter', (
+    tester,
+  ) async {
+    final session = _Session();
+    await _mount(tester, session, size: const Size(1440, 1000));
+    final player = session.players.single;
+    final gate = Completer<void>();
+    player.volumeGate = gate;
+    tester.widget<Slider>(find.byKey(const Key('audio-volume'))).onChanged!(
+      .35,
+    );
+    await _flush(tester);
+    await tester.tap(find.byTooltip('静音'));
+    gate.completeError(StateError('volume failed'));
+    await _flush(tester);
+    expect(find.text('音量设置失败，请重试'), findsOneWidget);
+    expect(player.actualVolume, 0);
+    await tester.tap(find.byTooltip('取消静音'));
+    await _flush(tester);
+    expect(player.actualVolume, .35);
+    expect(
+      (await SharedPreferences.getInstance()).getDouble('system_tts_volume'),
+      .35,
+    );
+    await tester.tap(find.byTooltip('下一章'));
+    await _flush(tester);
+    expect(session.players.last.actualVolume, .35);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await _flush(tester);
+    expect(session.players.last.disposed, true);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
   for (final width in [640.0, 1440.0]) {
     testWidgets('desktop theme, status, seek and actual volume at $width', (
       tester,
