@@ -659,7 +659,7 @@ class _AudioPlaybackController extends ChangeNotifier
         await _volumeTail;
         if (!_current(generation, player)) return;
         if (_volume > 0) _unmutedVolume = _volume;
-        await player.setVolume(_volume);
+        await _setVolume(_volume, persist: false);
       }
       if (!_current(generation, player)) return;
       final duration = player.duration > Duration.zero
