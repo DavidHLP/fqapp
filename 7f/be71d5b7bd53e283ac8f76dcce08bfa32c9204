@@ -1,0 +1,30 @@
+native/tests/linux_tts_lifetime.cc
+  s_e21805aa7ab3c5::t_53564abe5074df 1-8,10-82,89-95
+  s_e21805aa7ab3c5::t_df44b92f7bd66c 9,83-88
+test/linux_tts_lifetime_test.py
+  s_e21805aa7ab3c5::t_53564abe5074df 1-33
+test/linux_desktop_runtime_test.py
+  s_e21805aa7ab3c5::t_3c6524c83aefae 1-196
+native/linux/bridge.cc
+  s_e21805aa7ab3c5::t_bf9e323a2c090b 409
+native/linux/tts.cc
+  s_e21805aa7ab3c5::t_bf9e323a2c090b 37,52,58,98-102,121-125,172-178,348
+DEVELOPMENT.md
+  s_e21805aa7ab3c5::t_3c6524c83aefae 1228,1276-1292
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7fbe71d5b7bd53e283ac8f76dcce08bfa32c9204",
+  "prompts": {},
+  "sessions": {
+    "s_e21805aa7ab3c5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1caf3-c75c-7512-a1a4-db59fb733463",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
