@@ -1,0 +1,24 @@
+native/linux/bridge.cc
+  s_e21805aa7ab3c5::t_70e27bdcb24bbd 301-304
+  s_e21805aa7ab3c5::t_ddf2e18b3ff9fe 275-300,305-330
+test/support/linux_desktop_runtime.dart
+  s_e21805aa7ab3c5::t_ddf2e18b3ff9fe 183,202
+DEVELOPMENT.md
+  s_e21805aa7ab3c5::t_64eb3ef774f8fc 1280
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e03b0a9984dfb135d4375bc2e098d43b311d740c",
+  "prompts": {},
+  "sessions": {
+    "s_e21805aa7ab3c5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1caf3-c75c-7512-a1a4-db59fb733463",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
