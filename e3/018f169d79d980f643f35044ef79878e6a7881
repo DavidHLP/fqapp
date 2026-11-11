@@ -1,0 +1,68 @@
+test/audio_playback_scope_test.dart
+  s_60e28258eff9cb::t_405b426704a329 26-28,31-41,43-44,207,209,250
+  s_60e28258eff9cb::t_fa9430167d81e7 29-30,42
+lib/services/audio_playback_controller.dart
+  s_60e28258eff9cb::t_405b426704a329 214-215,460-461
+  s_60e28258eff9cb::t_8ca4560ed3b519 216-217,462
+lib/services/rust_bootstrap_io.dart
+  s_60e28258eff9cb::t_405b426704a329 25
+  s_60e28258eff9cb::t_c75fe06e035f7b 3
+linux/CMakeLists.txt
+  s_60e28258eff9cb::t_c75fe06e035f7b 74-77
+scripts/verify_windows_media.py
+  s_60e28258eff9cb::t_c75fe06e035f7b 11,22
+lib/services/desktop_platform.dart
+  s_60e28258eff9cb::t_c75fe06e035f7b 26-30,39,146-150,750,754-757
+  s_60e28258eff9cb::t_a53223e2cc19f6 215
+  s_60e28258eff9cb::t_405b426704a329 228
+  s_60e28258eff9cb::t_c520d030e570b5 151-153,229,758
+lib/pages/audio_page.dart
+  s_60e28258eff9cb::t_408ee5ac67892e 701-704
+  s_60e28258eff9cb::t_8ca4560ed3b519 2
+rust/src/network.rs
+  s_60e28258eff9cb::t_c75fe06e035f7b 90-97
+test/desktop_platform_test.dart
+  s_60e28258eff9cb::t_405b426704a329 21-52,54,69-77,79-91,93-94
+  s_60e28258eff9cb::t_a56fa0bf99f38a 7-8
+pubspec.yaml
+  s_60e28258eff9cb::t_c75fe06e035f7b 69
+rust/src/lib.rs
+  s_60e28258eff9cb::t_c75fe06e035f7b 42,44
+linux/flutter/generated_plugin_registrant.cc
+  s_60e28258eff9cb::t_234a3abb613a78 11,24-26
+DEVELOPMENT.md
+  s_60e28258eff9cb::t_bf2e42557e0809 1186-1212
+lib/services/linux_platform.dart
+  s_60e28258eff9cb::t_c75fe06e035f7b 11,22-24,26-28,34,50
+lib/main.dart
+  s_60e28258eff9cb::t_c75fe06e035f7b 115
+lib/services/desktop_media.dart
+  s_60e28258eff9cb::t_c75fe06e035f7b 15-17
+rust/build.rs
+  s_60e28258eff9cb::t_c75fe06e035f7b 2-3,17,27-28
+linux/flutter/generated_plugins.cmake
+  s_60e28258eff9cb::t_234a3abb613a78 8
+test/desktop_media_playback_test.dart
+  s_60e28258eff9cb::t_405b426704a329 10-46
+  s_60e28258eff9cb::t_bf2e42557e0809 1-9,47
+pubspec.lock
+  s_60e28258eff9cb::t_291778d9d2db32 606-613
+rust/Cargo.toml
+  s_60e28258eff9cb::t_4ef658379bb1f7 46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e3018f169d79d980f643f35044ef79878e6a7881",
+  "prompts": {},
+  "sessions": {
+    "s_60e28258eff9cb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c94e-e271-78f2-904e-f29c6bb3bd4d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
