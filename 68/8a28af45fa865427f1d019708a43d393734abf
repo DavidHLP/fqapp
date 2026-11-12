@@ -1,0 +1,19 @@
+lib/pages/listen_mode_page.dart
+  s_e21805aa7ab3c5::t_4c9963fbed93e7 131,132-133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "688a28af45fa865427f1d019708a43d393734abf",
+  "prompts": {},
+  "sessions": {
+    "s_e21805aa7ab3c5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1caf3-c75c-7512-a1a4-db59fb733463",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
