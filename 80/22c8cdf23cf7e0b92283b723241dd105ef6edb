@@ -1,0 +1,40 @@
+lib/pages/detail_page.dart
+  s_7646819f758fbb::t_83565a555828d5 1893-1895
+  s_7646819f758fbb::t_c9721bfa012281 27,1892,1896-1897
+test/series_detail_page_test.dart
+  s_7646819f758fbb::t_8d4115a53f299b 423
+  s_e21805aa7ab3c5::t_870750196ce83e 5,34-101,103-117
+  s_e21805aa7ab3c5::t_b6e2465ee3668f 102
+lib/pages/series_detail_page.dart
+  s_7646819f758fbb::t_c9721bfa012281 14,344
+  s_7646819f758fbb::t_83565a555828d5 345-347
+  s_7646819f758fbb::t_9cfdaf2ea4ac7b 348-349
+test/detail_page_test.dart
+  s_e21805aa7ab3c5::t_870750196ce83e 3,9,15-16,23-100,102-109,113-129
+  s_7646819f758fbb::t_83565a555828d5 110-112
+  s_e21805aa7ab3c5::t_608202c1642e58 101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8022c8cdf23cf7e0b92283b723241dd105ef6edb",
+  "prompts": {},
+  "sessions": {
+    "s_7646819f758fbb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cef4-4883-7af3-828d-8136b13775f9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_e21805aa7ab3c5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1caf3-c75c-7512-a1a4-db59fb733463",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
