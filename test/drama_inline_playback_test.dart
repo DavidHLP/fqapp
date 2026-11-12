@@ -21,6 +21,7 @@ import 'package:fqapp/services/drama_channel_preferences.dart';
 import 'package:fqapp/services/drama_mute_preferences.dart';
 import 'package:fqapp/services/player_preferences.dart';
 import 'package:fqapp/services/shelf_store.dart';
+import 'package:fqapp/services/shell_visibility.dart';
 import 'package:fqapp/services/swipe_guide_store.dart';
 import 'package:fqapp/widgets/player/playlet_danmaku_layer.dart';
 
@@ -103,58 +104,55 @@ class _Session {
     searchLoader: (query, {int page = 1}) async => const [],
   );
 
-  Widget app({bool tickerEnabled = true}) => ProviderScope(
+  Widget app() => ProviderScope(
     overrides: [
       homeProvider.overrideWith(() => home),
       dramaProvider.overrideWith(() => drama),
     ],
     child: MaterialApp(
       theme: theme,
-      home: TickerMode(
-        enabled: tickerEnabled,
-        child: DramaPage(
-          directoryLoader: (id, tab) async {
-            directoryCalls.add('$id:$tab');
-            return [
-              [
-                for (var n = 1; n <= episodeCount; n++)
-                  Chapter(itemId: '$id-$n', title: '第 $n 集', volumeName: '剧集'),
-              ],
+      home: DramaPage(
+        directoryLoader: (id, tab) async {
+          directoryCalls.add('$id:$tab');
+          return [
+            [
+              for (var n = 1; n <= episodeCount; n++)
+                Chapter(itemId: '$id-$n', title: '第 $n 集', volumeName: '剧集'),
+            ],
+          ];
+        },
+        contentLoader: (itemId, tab) async {
+          contentCalls.add('$itemId:$tab');
+          if (failure != null) throw failure!;
+          final response = <String, dynamic>{
+            'video_url': 'https://example.invalid/$itemId.mp4',
+          };
+          if (variantNames.isNotEmpty) {
+            response['variants'] = [
+              for (final (index, name) in variantNames.indexed)
+                {
+                  'name': name,
+                  'url': 'https://example.invalid/$itemId-$name.mp4',
+                  'key_hex': '',
+                  'height': 1080 - index * 180,
+                },
             ];
-          },
-          contentLoader: (itemId, tab) async {
-            contentCalls.add('$itemId:$tab');
-            if (failure != null) throw failure!;
-            final response = <String, dynamic>{
-              'video_url': 'https://example.invalid/$itemId.mp4',
-            };
-            if (variantNames.isNotEmpty) {
-              response['variants'] = [
-                for (final (index, name) in variantNames.indexed)
-                  {
-                    'name': name,
-                    'url': 'https://example.invalid/$itemId-$name.mp4',
-                    'key_hex': '',
-                    'height': 1080 - index * 180,
-                  },
-              ];
-            }
-            return response;
-          },
-          historyStore: store,
-          hotCommentsLoader: (seriesId) async =>
-              hotComments.putIfAbsent(seriesId, () => const []),
-          playerFactory: () {
-            final size = players.length < playerSizes.length
-                ? playerSizes[players.length]
-                : Size(width.toDouble(), height.toDouble());
-            final player = ControlledNativePlayer(hasFirstFrame: hasFirstFrame)
-              ..width = size.width.toInt()
-              ..height = size.height.toInt();
-            players.add(player);
-            return player;
-          },
-        ),
+          }
+          return response;
+        },
+        historyStore: store,
+        hotCommentsLoader: (seriesId) async =>
+            hotComments.putIfAbsent(seriesId, () => const []),
+        playerFactory: () {
+          final size = players.length < playerSizes.length
+              ? playerSizes[players.length]
+              : Size(width.toDouble(), height.toDouble());
+          final player = ControlledNativePlayer(hasFirstFrame: hasFirstFrame)
+            ..width = size.width.toInt()
+            ..height = size.height.toInt();
+          players.add(player);
+          return player;
+        },
       ),
     ),
   );
@@ -198,6 +196,7 @@ void main() {
   // The drama page reads the local shelf (for 追剧) from the store, so the box
   // has to exist before the first build.
   setUp(() async {
+    resetShellVisibility();
     SharedPreferences.setMockInitialValues({});
     // 频道选择是进程级静态态：别的用例切过频道会带进本页的冷启动恢复。
     DramaChannelPreferences.reset();
@@ -221,6 +220,7 @@ void main() {
   // The binding resets (surface size, lifecycle) live in _mount's tear-down:
   // `setSurfaceSize` asserts that the test is still running.
   tearDown(() async {
+    resetShellVisibility();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
           const MethodChannel('fqapp/native_player'),
@@ -630,7 +630,7 @@ void main() {
     await _mount(tester, session);
     final player = session.players.single;
 
-    await tester.pumpWidget(session.app(tickerEnabled: false));
+    shellVisibleTab.value = 0;
     await _flush(tester);
 
     expect(player.calls, contains('pause'));
@@ -638,7 +638,7 @@ void main() {
     expect(player.disposed, isFalse);
     expect(session.players, hasLength(1));
 
-    await tester.pumpWidget(session.app());
+    shellVisibleTab.value = 1;
     await _flush(tester);
     expect(player.isPlaying, isTrue);
     expect(session.players, hasLength(1));
@@ -671,6 +671,9 @@ void main() {
     historyWrite.complete();
     await _flush(tester);
     await tester.tap(find.text('推荐'));
+    await _flush(tester);
+    expect(session.players, hasLength(1), reason: '频道横滑尚未落定，不应提前起播');
+    await tester.pumpAndSettle();
     await _flush(tester);
     expect(dramaLightPageNotifier.value, isFalse);
     expect(session.players, hasLength(2));
