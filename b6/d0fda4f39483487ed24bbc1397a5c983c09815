@@ -1,0 +1,48 @@
+test/settings_player_layout_test.dart
+  s_bef2aae3bd91d3::t_d96d908173253b 3,11-12,17-18,24,30,122-124,196-197
+  s_e21805aa7ab3c5::t_54f55abbac7f93 8,125-130,132-153,156-163,170-185,187-195
+  s_bef2aae3bd91d3::t_17872d013e2517 9,14
+  s_e21805aa7ab3c5::t_3849db200d078a 131,154-155,164-169,186
+  s_e21805aa7ab3c5::t_9a84625e3f01ea 198
+test/reader_settings_sheet_test.dart
+  s_e21805aa7ab3c5::t_3849db200d078a 41-45,60-62,73-74,82-83,100-102
+  s_e21805aa7ab3c5::t_54f55abbac7f93 38-40,46-59,63-72,75-81,84-94,98,104-105,107,113-115,478,497
+  s_bef2aae3bd91d3::t_17872d013e2517 10,13,33-37,95-97,99,103,106,108-112,477,488
+  s_bef2aae3bd91d3::t_d96d908173253b 3,31-32
+  s_e21805aa7ab3c5::t_57b9784495d40d 116-117
+test/settings_audio_rate_engine_test.dart
+  s_e21805aa7ab3c5::t_54f55abbac7f93 32-56
+  s_bef2aae3bd91d3::t_d96d908173253b 1,17-20,31
+lib/widgets/reader/reader_appearance_sheet.dart
+  s_bef2aae3bd91d3::t_d96d908173253b 9,681,685
+lib/pages/settings_page.dart
+  s_e21805aa7ab3c5::t_3849db200d078a 34,72-74,143-153,180
+  s_bef2aae3bd91d3::t_d96d908173253b 79,87,131
+lib/widgets/reader/settings/reader_more_settings_sheet.dart
+  s_e21805aa7ab3c5::t_3849db200d078a 236-239
+  s_bef2aae3bd91d3::t_d96d908173253b 4,177-182
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b6d0fda4f39483487ed24bbc1397a5c983c09815",
+  "prompts": {},
+  "sessions": {
+    "s_bef2aae3bd91d3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ceb4-384d-72e2-a8e1-41f9eba7b84e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_e21805aa7ab3c5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1caf3-c75c-7512-a1a4-db59fb733463",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
