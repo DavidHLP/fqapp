@@ -1,0 +1,24 @@
+test/desktop_platform_test.dart
+  s_e21805aa7ab3c5::t_d99dddf73f63ba 357-406,414,419-420,428,432,436
+  s_e21805aa7ab3c5::t_40afb1754c3c9d 407-413,415-418,421-427,429-431,433-435
+DEVELOPMENT.md
+  s_e21805aa7ab3c5::t_1d7c058ce9df6c 1206-1208
+lib/services/linux_platform.dart
+  s_e21805aa7ab3c5::t_acff1002e03829 78-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f546ba13cd3af72360059ae62b02901256891a3d",
+  "prompts": {},
+  "sessions": {
+    "s_e21805aa7ab3c5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1caf3-c75c-7512-a1a4-db59fb733463",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
