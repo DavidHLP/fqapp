@@ -1,0 +1,27 @@
+lib/services/linux_libsecret_key_store.dart
+  s_e21805aa7ab3c5::t_756ec2200fc104 397-401,434-437
+  s_e21805aa7ab3c5::t_2121e1d51b4f67 452
+  s_e21805aa7ab3c5::t_701d677d8ec945 86-91
+test/linux_key_store_layout_test.dart
+  s_e21805aa7ab3c5::t_701d677d8ec945 1-2,7,13-15,20-21
+  s_e21805aa7ab3c5::t_756ec2200fc104 16-19
+.github/workflows/android-apk.yml
+  s_e21805aa7ab3c5::t_db9973fe44fd7d 670-674
+  s_e21805aa7ab3c5::t_f209b50c5802a5 655-656
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d794b0556d337422c86067199c102fecd60fa5bb",
+  "prompts": {},
+  "sessions": {
+    "s_e21805aa7ab3c5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1caf3-c75c-7512-a1a4-db59fb733463",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}
